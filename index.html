@@ -1260,7 +1260,11 @@
     }
     if (w.range) { shot(o, dir, target ? best : w.range, w.blade); sfx.laser(); } else sfx.swing();
     if (!target) return false;
-    if (target.pet) { petAnimal(target); return true; }
+    if (target.pet) {
+      // Удержание кнопки не должно то сажать на коня, то снимать с него
+      if (performance.now() > (target.petAt || 0)) { target.petAt = performance.now() + 1200; petAnimal(target); }
+      return true;
+    }
     target.hp -= w.dmg;
     target.flash = .15;
     target.x += dir[0] * .6;
