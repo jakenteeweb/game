@@ -1,0 +1,1916 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2430">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Рудные земли</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;500;700&display=swap">
+<style>
+  /* Концепция: горизонтальный экран занимает мир, управление лежит по краям ступенчатыми пиксельными плашками */
+  :root {
+    --sky: #8fd0ee;
+    --night: #1c2430;
+    --plank: #8a6238;
+    --plank-dark: #5e4124;
+    --red: #b8402f;
+    --red-dark: #7d2a1f;
+    --blue: #2f74b8;
+    --blue-dark: #1f4e7d;
+    --green: #4c9a3f;
+    --green-dark: #33692a;
+    --pink: #ff6fb1;
+    --ink: #fff7e6;
+    --gold: #f7cd3c;
+    --glass: rgba(28, 36, 48, .66);
+    --title: "Press Start 2P", "Courier New", monospace;
+    --body: "Rubik", "Segoe UI", system-ui, sans-serif;
+    --step: polygon(0 8px, 8px 8px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px));
+    color-scheme: dark;
+  }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+  body {
+    background: var(--night);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  #view, #look { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #look { touch-action: none; }
+
+  .hurt { position: fixed; inset: 0; background: var(--red); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .hurt.is-on { opacity: .4; transition: none; }
+
+  .left-top {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: max(10px, env(safe-area-inset-left, 0px));
+    display: grid;
+    gap: 5px;
+    pointer-events: none;
+  }
+  .chip { background: var(--glass); border-radius: 5px; padding: 6px 9px; }
+  .coins { font-family: var(--title); font-size: 11px; color: var(--gold); white-space: nowrap; }
+  .hearts { display: flex; gap: 3px; }
+  .hearts i { width: 12px; height: 12px; background: var(--red); clip-path: polygon(0 25%, 25% 0, 50% 25%, 75% 0, 100% 25%, 100% 50%, 50% 100%, 0 50%); }
+  .hearts i.off { background: var(--night); }
+  .quest {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .quest b { font-weight: 500; color: var(--gold); }
+  .right-top {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: max(10px, env(safe-area-inset-right, 0px));
+    display: flex;
+    gap: 6px;
+  }
+
+  .cross {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--ink), var(--ink)) center / 2px 16px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) center / 16px 2px no-repeat;
+    opacity: .85;
+  }
+  .dig { position: fixed; left: 50%; top: calc(50% + 20px); width: 64px; height: 7px; margin-left: -32px; background: var(--glass); border-radius: 2px; overflow: hidden; pointer-events: none; }
+  .dig i { display: block; height: 100%; width: 0; background: var(--gold); }
+  .toast { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); max-width: 70%; padding: 7px 12px; border-radius: 5px; background: var(--glass); text-align: center; pointer-events: none; }
+  .hello {
+    position: fixed;
+    left: 50%;
+    top: 34%;
+    transform: translateX(-50%);
+    padding: 12px 18px;
+    border-radius: 6px;
+    background: var(--glass);
+    font-family: var(--title);
+    font-size: 24px;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--gold);
+    pointer-events: none;
+  }
+  .hello.girl { color: var(--pink); }
+
+  .joy {
+    position: fixed;
+    left: max(22px, env(safe-area-inset-left, 0px));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    background: var(--glass);
+    touch-action: none;
+  }
+  .joy i { position: absolute; left: 39px; top: 39px; width: 50px; height: 50px; border-radius: 50%; background: var(--ink); opacity: .85; pointer-events: none; }
+
+  .pad {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right, 0px));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    display: grid;
+    grid-template-columns: 76px 92px;
+    grid-template-rows: 76px 92px;
+    gap: 8px;
+  }
+  .key {
+    display: grid;
+    place-items: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 6px;
+    clip-path: var(--step);
+    font-size: 11px;
+    font-weight: 700;
+    touch-action: none;
+    border-bottom: 6px solid var(--plank-dark);
+    background: var(--plank);
+  }
+  .key:active { border-bottom-width: 1px; transform: translateY(4px); }
+  .key svg { width: 26px; height: 26px; fill: var(--ink); shape-rendering: crispEdges; }
+  .key.attack { background: var(--red); border-color: var(--red-dark); }
+  .key.build { background: var(--blue); border-color: var(--blue-dark); }
+  .key.jump { background: var(--green); border-color: var(--green-dark); }
+  .mini { width: auto; height: 42px; min-width: 62px; padding: 5px 10px; }
+
+  .bar {
+    position: fixed;
+    left: calc(max(22px, env(safe-area-inset-left, 0px)) + 142px);
+    right: calc(max(18px, env(safe-area-inset-right, 0px)) + 190px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+  .bar > :first-child { margin-left: auto; }
+  .bar > :last-child { margin-right: auto; }
+  .slot {
+    position: relative;
+    flex: 0 0 auto;
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    border-radius: 4px;
+    background-color: var(--night);
+    background-size: 800% 800%;
+    image-rendering: pixelated;
+    border: 3px solid var(--night);
+    display: grid;
+    place-items: center;
+  }
+  .slot.is-on { border-color: var(--gold); }
+  .slot svg { width: 34px; height: 34px; shape-rendering: crispEdges; }
+  .slot span { position: absolute; right: 2px; bottom: 1px; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px var(--night); }
+
+  .sheet {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding-block: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 10px);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: rgba(16, 22, 30, .62);
+    touch-action: pan-y;
+  }
+  .card { width: 100%; max-width: 680px; max-height: 100%; overflow-y: auto; background: var(--night); border-radius: 8px; padding: 14px 16px; display: grid; gap: 11px; }
+  .card h1, .card h2 { margin: 0; font-family: var(--title); line-height: 1.5; font-weight: 400; color: var(--gold); }
+  .card h1 { font-size: 20px; }
+  .card h2 { font-size: 12px; }
+  .card p { margin: 0; line-height: 1.45; }
+  .heroes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .pick { display: grid; justify-items: center; gap: 6px; padding: 12px; border-radius: 6px; background: var(--plank-dark); box-shadow: 0 4px 0 var(--plank); }
+  .pick.girl { background: #8f2f66; box-shadow: 0 4px 0 var(--pink); }
+  .pick canvas { width: 96px; height: 96px; image-rendering: pixelated; }
+  .pick b { font-family: var(--title); font-size: 13px; font-weight: 400; color: var(--gold); }
+  .pick.girl b { color: #ffd0e6; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .tabs { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+  .tab { flex: 0 0 auto; padding: 8px 11px; border-radius: 5px; background: var(--plank-dark); }
+  .tab.is-on { background: var(--gold); color: var(--night); font-weight: 700; }
+  .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; font-variant-numeric: tabular-nums; min-height: 46px; }
+  .item small { display: block; opacity: .75; }
+  .item canvas, .item svg { width: 44px; height: 44px; image-rendering: pixelated; shape-rendering: crispEdges; border-radius: 4px; background: var(--plank-dark); }
+  .swatch { width: 44px; height: 44px; border-radius: 4px; }
+  .buy { min-width: 84px; padding: 8px 9px; border-radius: 5px; background: var(--plank); font-weight: 500; }
+  .buy:disabled { opacity: .4; cursor: default; }
+  .buy.is-on { background: var(--green); }
+  .wide { width: 100%; padding: 12px; border-radius: 5px; background: var(--plank); font-weight: 700; box-shadow: 0 4px 0 var(--plank-dark); }
+  .close { padding: 7px 11px; border-radius: 5px; background: var(--plank-dark); }
+
+  #rotate { display: none; position: fixed; inset: 0; z-index: 5; place-items: center; text-align: center; padding: 32px; background: var(--night); touch-action: none; }
+  #rotate b { display: block; margin-bottom: 12px; font-family: var(--title); font-size: 14px; line-height: 1.6; font-weight: 400; color: var(--gold); }
+  @media (orientation: portrait) { #rotate { display: grid; } }
+
+  @media (max-height: 340px) {
+    .joy { width: 104px; height: 104px; }
+    .joy i { left: 29px; top: 29px; width: 46px; height: 46px; }
+    .pad { grid-template-columns: 64px 78px; grid-template-rows: 64px 78px; }
+    .slot { width: 44px; height: 44px; }
+    .pick canvas { width: 72px; height: 72px; }
+  }
+</style>
+
+<canvas id="view"></canvas>
+<div id="look" aria-label="Игровой мир"></div>
+<div class="hurt" id="hurt"></div>
+
+<div class="left-top">
+  <div class="chip coins" id="coins"></div>
+  <div class="chip hearts" id="hearts"></div>
+</div>
+<div class="chip quest" id="quest"></div>
+<div class="right-top">
+  <button type="button" class="key mini" id="mute">Звук</button>
+  <button type="button" class="key mini" id="cam">Вид</button>
+  <button type="button" class="key mini" id="shop-btn">Лавка</button>
+</div>
+<div class="cross"></div>
+<div class="dig" id="dig" hidden><i id="dig-fill"></i></div>
+<div class="toast" id="toast" hidden></div>
+<div class="hello" id="hello" hidden></div>
+
+<div class="joy" id="joy"><i id="stick"></i></div>
+<div class="bar" id="bar"></div>
+<div class="pad">
+  <button type="button" class="key build" id="build" aria-label="Поставить блок" style="grid-column: 2; grid-row: 1;"><svg viewBox="0 0 8 8"><path d="M1 2h6v5H1zM0 1h8v1H0z"/></svg>Блок</button>
+  <button type="button" class="key attack" id="attack" aria-label="Удар и добыча" style="grid-column: 1; grid-row: 2;"><svg viewBox="0 0 8 8"><path d="M6 0h2v2H7v1H6v1H5v1H4v1H3V5H2V4h1V3h1V2h1V1h1zM1 5h1v1h1v1h1v1H3V7H2v1H0V6h1z"/></svg>Удар</button>
+  <button type="button" class="key jump" id="jump" aria-label="Прыжок" style="grid-column: 2; grid-row: 2;"><svg viewBox="0 0 8 8"><path d="M3 8h2V4h2V3H6V2H5V1H3v1H2v1H1v1h2z"/></svg>Прыжок</button>
+</div>
+
+<div class="sheet" id="intro">
+  <div class="card">
+    <h1>Рудные земли</h1>
+    <p>Десять больших карт, 20 героев, животные, дома и чудовища. Красная кнопка бьёт, копает и гладит животных, синяя ставит блок, кнопка «Вид» меняет камеру. Остальные герои и дома ждут в лавке. Выберите героя:</p>
+    <div class="heroes">
+      <button type="button" class="pick" id="pick-0"><canvas id="pic-0"></canvas><b>ХАН</b></button>
+      <button type="button" class="pick girl" id="pick-1"><canvas id="pic-1"></canvas><b>ХАНШАЙЫМ</b></button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="shop" hidden>
+  <div class="card">
+    <div class="head">
+      <div class="tabs" id="tabs"></div>
+      <button type="button" class="close" id="shop-close">Закрыть</button>
+    </div>
+    <div class="list" id="shop-list"></div>
+    <button type="button" class="wide" id="sell-all">Продать всё</button>
+  </div>
+</div>
+
+<div id="rotate"><div><b>Поверните телефон</b>В эту игру играют только горизонтально.</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+  const W = 96, D = 96, H = 56, CS = 16, REACH = 6, VIEW = 62, SAVE_KEY = 'rudnye-zemli-2', MAX_HP = 6;
+  const AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, LOG = 5, LEAF = 6, PLANK = 7,
+    COAL = 8, IRON = 9, GOLD = 10, DIAMOND = 11, BEDROCK = 12, BRICK = 13, SNOW = 14,
+    SANDSTONE = 15, CACTUS = 16, BASALT = 17, LAVA = 18, RUBY = 19, PINE = 20, CHEST = 21, WATER = 22, GLASS = 23;
+
+  // t: плитки атласа для верха, боков и низа; h: секунд на добычу; drop: что попадает в сумку; sell: цена; c: цвет осколков
+  const BLOCKS = [
+    null,
+    { n: 'Трава', t: [0, 1, 2], h: .6, drop: DIRT, c: 0x5ca03e },
+    { n: 'Земля', t: [2, 2, 2], h: .5, drop: DIRT, c: 0x7c583a },
+    { n: 'Камень', t: [3, 3, 3], h: 1.2, drop: STONE, sell: 1, c: 0x7a7e82 },
+    { n: 'Песок', t: [4, 4, 4], h: .5, drop: SAND, c: 0xdbcc96 },
+    { n: 'Бревно', t: [6, 5, 6], h: 1, drop: LOG, sell: 2, c: 0x66492d },
+    { n: 'Листва', t: [7, 7, 7], h: .25, drop: LEAF, c: 0x3e863e },
+    { n: 'Доски', t: [8, 8, 8], h: .8, drop: PLANK, buy: 3, c: 0xb28a54 },
+    { n: 'Уголь', t: [9, 9, 9], h: 1.4, drop: COAL, sell: 3, c: 0x202024 },
+    { n: 'Железо', t: [10, 10, 10], h: 1.9, drop: IRON, sell: 6, c: 0xd8aa82 },
+    { n: 'Золото', t: [11, 11, 11], h: 2.5, drop: GOLD, sell: 15, c: 0xf8ce3c },
+    { n: 'Алмаз', t: [12, 12, 12], h: 3.2, drop: DIAMOND, sell: 40, c: 0x5ae8e2 },
+    { n: 'Бедрок', t: [13, 13, 13], h: Infinity, c: 0x3a3a42 },
+    { n: 'Кирпич', t: [14, 14, 14], h: 1.4, drop: BRICK, buy: 5, c: 0xaa4a3c },
+    { n: 'Снег', t: [15, 16, 2], h: .5, drop: SNOW, c: 0xf0f6fa },
+    { n: 'Песчаник', t: [17, 17, 17], h: 1, drop: SANDSTONE, sell: 1, c: 0xcdb27a },
+    { n: 'Кактус', t: [19, 18, 19], h: .5, drop: CACTUS, c: 0x3e8a4a },
+    { n: 'Базальт', t: [20, 20, 20], h: 1.4, drop: BASALT, sell: 2, c: 0x3a3840 },
+    { n: 'Лава', t: [21, 21, 21], h: Infinity, c: 0xff7a1e },
+    { n: 'Рубин', t: [22, 22, 22], h: 3.6, drop: RUBY, sell: 80, c: 0xe2305a },
+    { n: 'Хвоя', t: [23, 23, 23], h: .25, drop: LEAF, c: 0x2c5f44 },
+    { n: 'Сундук', t: [25, 24, 25], h: .7, c: 0xa8702c },
+    { n: 'Вода', t: [26, 26, 26], h: Infinity, c: 0x3f8fd6 },
+    { n: 'Стекло', t: [27, 27, 27], h: .4, drop: GLASS, buy: 4, c: 0xaad7eb }
+  ];
+
+  // tame: идёт за героем; ride: можно ездить верхом; gift: приносит монеты, если подойти; beast: опасный зверь; fly: летает
+  const ANIMALS = {
+    dog: { n: 'Собака', c: 0xb08050, w: .36, h: .36, l: .8, leg: .34, head: .34, sound: 'woof', tame: true },
+    cat: { n: 'Кошка', c: 0xe0a050, w: .26, h: .26, l: .6, leg: .24, head: .28, sound: 'meow', tame: true, ears: true },
+    deer: { n: 'Олень', c: 0xa8703c, w: .44, h: .5, l: 1.2, leg: .8, head: .36, sound: 'deer', antlers: true, gift: 'Олень подарил' },
+    ram: { n: 'Баран', c: 0xeeeae0, w: .7, h: .6, l: 1, leg: .42, head: .36, sound: 'baa', horns: true, gift: 'Шерсть' },
+    cow: { n: 'Корова', c: 0xf2f0ea, w: .7, h: .7, l: 1.5, leg: .6, head: .44, sound: 'moo', spots: 0x2a2a2e, gift: 'Молоко' },
+    horse: { n: 'Конь', c: 0x7a4a26, w: .52, h: .68, l: 1.6, leg: .95, head: .4, sound: 'neigh', mane: 0x20160e, ride: true },
+    lion: { n: 'Лев', c: 0xd6a24a, w: .6, h: .66, l: 1.5, leg: .56, head: .5, sound: 'roar', mane: 0x7a4a1e, big: true, beast: true, hp: 30, pay: 30 },
+    tiger: { n: 'Тигр', c: 0xee8a26, w: .58, h: .62, l: 1.6, leg: .54, head: .46, sound: 'roar', spots: 0x1e1a18, beast: true, hp: 34, pay: 36 },
+    chicken: { n: 'Курица', c: 0xfaf6ec, w: .3, h: .3, l: .36, leg: .2, head: .2, sound: 'cluck', comb: true, gift: 'Яйцо' },
+    eagle: { n: 'Беркут', c: 0x5a3e24, w: .4, h: .3, l: 1, leg: 0, head: .26, sound: 'cry', fly: true }
+  };
+
+  // Дома строятся одной покупкой прямо перед героем
+  const HOUSES = [
+    { n: 'Шалаш', d: 'Маленькое укрытие', cost: 100, w: 5, l: 5, h: 3, wall: LOG, roof: LEAF },
+    { n: 'Деревянный дом', d: 'Окна и крыша из досок', cost: 350, w: 8, l: 7, h: 4, wall: PLANK, roof: LOG },
+    { n: 'Кирпичный дом', d: 'Крепкий и просторный', cost: 800, w: 10, l: 9, h: 5, wall: BRICK, roof: BASALT },
+    { n: 'Башня', d: 'Высокая, со смотровой площадкой', cost: 1400, w: 7, l: 7, h: 14, wall: STONE, roof: BRICK },
+    { n: 'Замок', d: 'Стены, четыре башни и двор', cost: 3000, w: 19, l: 19, h: 6, wall: STONE, roof: BRICK, castle: true }
+  ];
+  const ORES = [STONE, SANDSTONE, BASALT, LOG, COAL, IRON, GOLD, DIAMOND, RUBY];
+
+  const MOBS = {
+    slime: { n: 'Слизень', c: 0x58c24a, hp: 4, pay: 3 },
+    crab: { n: 'Краб', c: 0xd8583c, hp: 6, pay: 5 },
+    scorp: { n: 'Скорпион', c: 0xc99a3e, hp: 8, pay: 7 },
+    beast: { n: 'Каменник', c: 0x8a7a68, hp: 11, pay: 10 },
+    wolf: { n: 'Тень', c: 0x3a2e5c, hp: 14, pay: 13 },
+    snow: { n: 'Снежник', c: 0xdfeefa, hp: 18, pay: 17 },
+    ice: { n: 'Ледяной дух', c: 0x7fd8f2, hp: 22, pay: 22 },
+    spore: { n: 'Спорник', c: 0xb65ae0, hp: 28, pay: 28 },
+    magma: { n: 'Магмовик', c: 0xff6a1e, hp: 36, pay: 36 },
+    star: { n: 'Звёздник', c: 0xf7e36a, hp: 46, pay: 48 }
+  };
+
+  // base и amp задают высоту, scale размер холмов, level уровень воды или лавы, rich богатство руды, tint оттенок всех блоков
+  const MAPS = [
+    { n: 'Зелёная долина', d: 'Холмы, рощи и озёра', cost: 0, sky: 0x8fd0ee, base: 18, amp: 20, scale: 22, top: GRASS, sub: DIRT, rock: STONE, tree: 'oak', treeP: .02, liquid: WATER, level: 22, rich: 1, mob: 'slime', tint: [1, 1, 1] },
+    { n: 'Озёрный край', d: 'Острова среди большой воды', cost: 150, sky: 0x9fdcf2, base: 12, amp: 24, scale: 16, top: GRASS, sub: SAND, rock: STONE, tree: 'oak', treeP: .03, liquid: WATER, level: 25, rich: 1.1, mob: 'crab', tint: [.92, 1.05, 1] },
+    { n: 'Золотая пустыня', d: 'Дюны, кактусы, пирамида', cost: 300, sky: 0xf2d9a0, base: 18, amp: 12, scale: 26, top: SAND, sub: SANDSTONE, rock: SANDSTONE, tree: 'cactus', treeP: .012, liquid: WATER, level: 18, rich: 1.5, mob: 'scorp', tint: [1.05, 1, .92], pyramid: true },
+    { n: 'Красный каньон', d: 'Высокие стены и провалы', cost: 500, sky: 0xeeb48a, base: 10, amp: 40, scale: 18, top: SANDSTONE, sub: SANDSTONE, rock: STONE, tree: 'cactus', treeP: .004, liquid: LAVA, level: 9, rich: 1.8, mob: 'beast', tint: [1.1, .78, .66], terrace: 4 },
+    { n: 'Тёмный лес', d: 'Густая чаща под сумерками', cost: 750, sky: 0x3d5266, base: 18, amp: 16, scale: 20, top: GRASS, sub: DIRT, rock: STONE, tree: 'oak', treeP: .09, liquid: WATER, level: 19, rich: 2, mob: 'wolf', tint: [.62, .72, .7], tall: true },
+    { n: 'Снежный пик', d: 'Самые высокие горы', cost: 1000, sky: 0xcfe6f5, base: 14, amp: 36, scale: 24, top: SNOW, sub: DIRT, rock: STONE, tree: 'pine', treeP: .022, liquid: 0, level: 0, rich: 2.3, mob: 'snow', tint: [.97, 1, 1.06] },
+    { n: 'Ледяное море', d: 'Снежные острова и синий лёд', cost: 1400, sky: 0xaecbe6, base: 12, amp: 22, scale: 14, top: SNOW, sub: SNOW, rock: STONE, tree: 'pine', treeP: .01, liquid: WATER, level: 23, rich: 2.6, mob: 'ice', tint: [.85, .95, 1.12] },
+    { n: 'Грибные топи', d: 'Лиловая земля и споры', cost: 1900, sky: 0x8a6fb0, base: 16, amp: 14, scale: 15, top: GRASS, sub: DIRT, rock: STONE, tree: 'oak', treeP: .05, liquid: WATER, level: 20, rich: 3, mob: 'spore', tint: [1.05, .55, 1.1] },
+    { n: 'Огненный вулкан', d: 'Реки лавы и рубины', cost: 2600, sky: 0x4a2a2a, base: 16, amp: 26, scale: 18, top: BASALT, sub: BASALT, rock: BASALT, tree: '', treeP: 0, liquid: LAVA, level: 20, rich: 3.4, mob: 'magma', tint: [1.1, .86, .8], ruby: true },
+    { n: 'Небесные острова', d: 'Земля парит над пустотой', cost: 3500, sky: 0x6fa8f2, base: 26, amp: 14, scale: 13, top: GRASS, sub: DIRT, rock: STONE, tree: 'oak', treeP: .03, liquid: 0, level: 0, rich: 4, mob: 'star', tint: [.98, 1.02, 1.1], float: true, ruby: true }
+  ];
+
+  const WEAPONS = [
+    { n: 'Кирка', d: 'Простой удар', dmg: 1, rate: .42, cost: 0, blade: 0x8a8f96 },
+    { n: 'Железный меч', d: 'Урон 3', dmg: 3, rate: .4, cost: 90, blade: 0xd6dce2 },
+    { n: 'Боевой топор', d: 'Урон 5, медленный', dmg: 5, rate: .6, cost: 260, blade: 0x9fa8b0 },
+    { n: 'Бластер', d: 'Урон 4, бьёт издалека', dmg: 4, rate: .34, cost: 520, range: 18, blade: 0x4fe0f0 },
+    { n: 'Огненный меч', d: 'Урон 9', dmg: 9, rate: .38, cost: 1100, blade: 0xff7a1e },
+    { n: 'Молот титана', d: 'Урон 16, очень медленный', dmg: 16, rate: .8, cost: 2200, blade: 0xb65ae0 },
+    { n: 'Звёздный клинок', d: 'Урон 24', dmg: 24, rate: .32, cost: 4200, blade: 0xf7e36a }
+  ];
+
+  const SKIN = 0xe6b98e;
+  const HEROES = [
+    { n: 'Хан', hair: 0x1e1a18 },
+    { n: 'Ханшайым', hair: 0x1e1a18, girl: true },
+    ...[
+      ['Айбек', 0, 0x2f9e6e, 0x3a2416], ['Айгуль', 1, 0x9b5de5, 0x1e1a18], ['Бакыт', 0, 0xe0702e, 0x1e1a18],
+      ['Бегимай', 1, 0x2fb8c8, 0x5a3418], ['Данияр', 0, 0x3a58c8, 0x3a2416], ['Жылдыз', 1, 0xf2c230, 0x1e1a18],
+      ['Эрмек', 0, 0xc23a30, 0x1e1a18], ['Нурай', 1, 0xe2408a, 0x5a3418], ['Тимур', 0, 0x4a4f5a, 0x1e1a18],
+      ['Сезим', 1, 0x5ac26a, 0x1e1a18], ['Азамат', 0, 0x7a2a9c, 0x3a2416], ['Айсулуу', 1, 0xff8a5c, 0x1e1a18],
+      ['Улан', 0, 0x20a0d8, 0x1e1a18], ['Мээрим', 1, 0xc8a0f0, 0x3a2416], ['Кубат', 0, 0x8a6238, 0x1e1a18],
+      ['Чолпон', 1, 0xf25f6e, 0x1e1a18], ['Марат', 0, 0x2c6a3a, 0x3a2416], ['Алтынай', 1, 0xf7cd3c, 0x5a3418]
+    ].map(([n, girl, shirt, hair], i) => ({ n, girl: Boolean(girl), shirt, hair, cost: 60 * (i + 2) }))
+  ];
+  HEROES.forEach(h => { h.hello = 'Салем ' + h.n; h.cost = h.cost || 0; });
+  // who: только для Хана (0) или только для Ханшайым (1); без него костюм подходит обоим
+  const COSTUMES = [
+    { n: 'Шахтёр', who: 0, cost: 0, skin: SKIN, shirt: 0x3f7fbf, pants: 0x3a3f4a, hat: 'cap', hatc: 0xf2c230 },
+    { n: 'Розовое платье', who: 1, cost: 0, skin: SKIN, shirt: 0xff6fb1, pants: SKIN, dress: 0xff8fc4, hat: 'bow', hatc: 0xff3f94 },
+    { n: 'Рыцарь', cost: 120, skin: SKIN, shirt: 0xaab2ba, pants: 0x78808a, hat: 'helm', hatc: 0xc4ccd4 },
+    { n: 'Ниндзя', cost: 180, skin: SKIN, shirt: 0x24262e, pants: 0x24262e, hat: 'mask', hatc: 0x24262e },
+    { n: 'Пират', cost: 260, skin: 0xd8a678, shirt: 0xc23a30, pants: 0x2e3a5a, hat: 'tricorn', hatc: 0x1c1c22 },
+    { n: 'Космонавт', cost: 420, skin: SKIN, shirt: 0xeef2f6, pants: 0xcfd6dc, hat: 'space', hatc: 0xeef2f6 },
+    { n: 'Платье феи', who: 1, cost: 600, skin: SKIN, shirt: 0xffb6dc, pants: SKIN, dress: 0xffd0e8, hat: 'bow', hatc: 0xc86fe0, wings: true },
+    { n: 'Дракон', cost: 900, skin: 0x4fae5a, shirt: 0x3a8a4a, pants: 0x2c6a3a, hat: 'horns', hatc: 0xf2e6c0, cape: 0xd8583c },
+    { n: 'Король', who: 0, cost: 1500, skin: SKIN, shirt: 0x7a2a9c, pants: 0x4a1a60, hat: 'crown', hatc: 0xf7cd3c, cape: 0xc2303c },
+    { n: 'Принцесса', who: 1, cost: 1500, skin: SKIN, shirt: 0xff4f9e, pants: SKIN, dress: 0xff6fb1, hat: 'crown', hatc: 0xf7cd3c, cape: 0xffd0e8 }
+  ];
+
+  // У каждого героя есть свой бесплатный наряд
+  HEROES.forEach((h, i) => {
+    if (h.shirt === undefined) { h.base = h.girl ? 1 : 0; return; }
+    h.base = COSTUMES.length;
+    COSTUMES.push({ n: 'Свой наряд', own: i, cost: 0, skin: SKIN, shirt: h.shirt, pants: h.girl ? SKIN : 0x2e3a5a, dress: h.girl ? h.shirt : undefined, hat: h.girl ? 'bow' : 'cap', hatc: h.shirt });
+  });
+
+  const GEAR = [
+    { id: 'pick', n: 'Сила кирки', d: 'Копает быстрее', costs: [20, 60, 150, 400, 900, 2000] },
+    { id: 'boots', n: 'Сапоги', d: 'Бег быстрее', costs: [30, 90, 240] },
+    { id: 'spring', n: 'Пружины', d: 'Прыжок выше', costs: [40, 160] },
+    { id: 'armor', n: 'Броня', d: 'Плюс 2 сердца', costs: [80, 300, 900] }
+  ];
+
+  const ICONS = [
+    '<rect x="2" y="1" width="6" height="1" fill="#8a8f96"/><rect x="6" y="2" width="2" height="1" fill="#8a8f96"/><rect x="5" y="2" width="1" height="1" fill="#6b4a2a"/><rect x="4" y="3" width="1" height="1" fill="#6b4a2a"/><rect x="3" y="4" width="1" height="1" fill="#6b4a2a"/><rect x="2" y="5" width="1" height="1" fill="#6b4a2a"/><rect x="1" y="6" width="1" height="1" fill="#6b4a2a"/>',
+    '<rect x="6" y="1" width="1" height="1" fill="#d6dce2"/><rect x="5" y="2" width="1" height="1" fill="#d6dce2"/><rect x="4" y="3" width="1" height="1" fill="#d6dce2"/><rect x="3" y="4" width="1" height="1" fill="#d6dce2"/><rect x="2" y="5" width="1" height="1" fill="#8a6238"/><rect x="3" y="5" width="1" height="1" fill="#f7cd3c"/><rect x="1" y="6" width="1" height="1" fill="#8a6238"/>',
+    '<rect x="4" y="1" width="3" height="3" fill="#9fa8b0"/><rect x="3" y="3" width="1" height="1" fill="#6b4a2a"/><rect x="2" y="4" width="1" height="1" fill="#6b4a2a"/><rect x="1" y="5" width="1" height="2" fill="#6b4a2a"/>',
+    '<rect x="1" y="3" width="6" height="2" fill="#5a6470"/><rect x="7" y="3" width="1" height="1" fill="#4fe0f0"/><rect x="2" y="5" width="2" height="2" fill="#3a3f4a"/>',
+    '<rect x="6" y="1" width="1" height="1" fill="#ffd23e"/><rect x="5" y="2" width="1" height="1" fill="#ff7a1e"/><rect x="4" y="3" width="1" height="1" fill="#ff7a1e"/><rect x="3" y="4" width="1" height="1" fill="#e2401e"/><rect x="2" y="5" width="1" height="1" fill="#6b4a2a"/><rect x="1" y="6" width="1" height="1" fill="#6b4a2a"/>',
+    '<rect x="3" y="1" width="4" height="3" fill="#b65ae0"/><rect x="4" y="4" width="1" height="1" fill="#6b4a2a"/><rect x="3" y="5" width="1" height="1" fill="#6b4a2a"/><rect x="2" y="6" width="1" height="1" fill="#6b4a2a"/>',
+    '<rect x="6" y="1" width="1" height="1" fill="#fff4b0"/><rect x="5" y="2" width="1" height="1" fill="#f7e36a"/><rect x="4" y="3" width="1" height="1" fill="#f7e36a"/><rect x="3" y="4" width="1" height="1" fill="#f7cd3c"/><rect x="2" y="5" width="1" height="1" fill="#4a3a8a"/><rect x="1" y="6" width="1" height="1" fill="#4a3a8a"/>'
+  ];
+  const iconSvg = i => `<svg viewBox="0 0 8 8">${ICONS[i]}</svg>`;
+
+  const LETTERS = {
+    'Х': ['10001', '10001', '01010', '00100', '01010', '10001', '10001'],
+    'А': ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+    'Н': ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
+    'Ш': ['10101', '10101', '10101', '10101', '10101', '10101', '11111'],
+    'Й': ['01010', '10001', '10011', '10101', '11001', '10001', '10001'],
+    'Ы': ['10001', '10001', '10001', '11101', '10101', '10101', '11101'],
+    'М': ['10001', '11011', '10101', '10001', '10001', '10001', '10001']
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function loadSave() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; }
+  }
+  const saved = loadSave() || {};
+  const game = {
+    seed: saved.seed || Math.floor(Math.random() * 1e6),
+    coins: saved.coins || 0,
+    inv: saved.inv || {},
+    gear: Object.assign({ pick: 0, boots: 0, spring: 0, armor: 0 }, saved.gear),
+    weapons: saved.weapons || [0],
+    hand: saved.hand || 0,
+    costumes: saved.costumes || [...new Set(HEROES.map(h => h.base))],
+    outfit: saved.outfit || HEROES.map(h => h.base),
+    heroes: saved.heroes || [0, 1],
+    heroId: saved.heroId || 0,
+    maps: saved.maps || [0],
+    map: saved.map || 0,
+    quest: saved.quest || null,
+    questsDone: saved.questsDone || 0,
+    day: saved.day || '',
+    edits: saved.edits || {},
+    third: saved.third || false,
+    block: saved.block || 0,
+    muted: saved.muted || false
+  };
+  let edits = new Map(game.edits[game.map] || []);
+  let dirtySave = false;
+  const maxHp = () => MAX_HP + game.gear.armor * 2;
+  let hp = maxHp();
+
+  function save() {
+    dirtySave = false;
+    game.edits[game.map] = [...edits];
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(game)); } catch (e) {}
+  }
+
+  /* Текстуры рисуются пикселями на холсте, поэтому игре не нужны внешние картинки */
+  function makeAtlas() {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const ctx = cv.getContext('2d');
+    let s = 7;
+    const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    const c = (r, g, b, amp = 10) => {
+      const v = Math.floor((rnd() - .5) * amp * 2);
+      return `rgb(${r + v},${g + v},${b + v})`;
+    };
+    const stone = () => c(122, 126, 130, 12);
+    const ore = (r, g, b) => () => (rnd() < .24 ? c(r, g, b, 14) : stone());
+    const paints = [
+      () => c(92, 160, 62, 14),
+      (x, y) => (y < 3 + (x * 7 % 3) ? c(92, 160, 62, 12) : c(124, 88, 58, 10)),
+      () => c(124, 88, 58, 11),
+      stone,
+      () => c(219, 204, 150, 8),
+      x => (x % 4 === 0 ? c(72, 50, 30, 6) : c(102, 73, 45, 8)),
+      (x, y) => (Math.floor(Math.hypot(x - 7.5, y - 7.5)) % 3 === 0 ? c(130, 98, 58, 6) : c(176, 138, 88, 6)),
+      () => (rnd() < .3 ? c(38, 96, 44, 8) : c(62, 134, 62, 12)),
+      (x, y) => (y % 4 === 3 ? c(120, 86, 48, 5) : c(178, 138, 84, 8)),
+      ore(32, 32, 36),
+      ore(216, 170, 130),
+      ore(248, 206, 60),
+      ore(90, 232, 226),
+      () => c(58, 58, 66, 14),
+      (x, y) => (y % 4 === 3 || (x + (y % 8 < 4 ? 0 : 4)) % 8 === 0 ? c(198, 190, 176, 5) : c(170, 74, 60, 10)),
+      () => c(238, 244, 250, 5),
+      (x, y) => (y < 4 + (x * 5 % 3) ? c(238, 244, 250, 5) : c(124, 88, 58, 10)),
+      (x, y) => (y % 5 === 4 ? c(178, 150, 100, 6) : c(208, 180, 124, 7)),
+      x => (x % 5 === 2 ? c(38, 100, 54, 6) : c(62, 138, 74, 8)),
+      () => c(150, 190, 110, 8),
+      () => c(56, 54, 62, 9),
+      () => (rnd() < .35 ? c(255, 214, 80, 12) : c(246, 110, 30, 14)),
+      () => (rnd() < .24 ? c(226, 48, 90, 16) : c(56, 54, 62, 9)),
+      () => (rnd() < .35 ? c(26, 70, 48, 8) : c(44, 96, 68, 10)),
+      (x, y) => (y === 6 || y === 7 ? c(70, 60, 50, 4) : (x === 7 || x === 8) && y > 4 && y < 10 ? c(247, 205, 60, 6) : c(168, 112, 44, 10)),
+      (x, y) => (x % 15 === 0 || y % 15 === 0 ? c(90, 60, 30, 6) : c(150, 100, 42, 8)),
+      () => c(70, 150, 218, 10),
+      (x, y) => (x % 15 === 0 || y % 15 === 0 ? c(230, 240, 245, 4) : c(170, 215, 235, 5))
+    ];
+    paints.forEach((paint, i) => {
+      const ox = (i % 8) * 16, oy = Math.floor(i / 8) * 16;
+      for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+          ctx.fillStyle = paint(x, y);
+          ctx.fillRect(ox + x, oy + y, 1, 1);
+        }
+      }
+    });
+    return cv;
+  }
+
+  /* Мир */
+  const world = new Uint8Array(W * D * H);
+  const idx = (x, y, z) => x + z * W + y * W * D;
+  const inside = (x, y, z) => x >= 0 && y >= 0 && z >= 0 && x < W && y < H && z < D;
+  const get = (x, y, z) => (inside(x, y, z) ? world[idx(x, y, z)] : AIR);
+  const isLiquid = id => id === WATER || id === LAVA;
+  const solid = (x, y, z) => { const id = get(x, y, z); return id !== AIR && !isLiquid(id); };
+
+  const mapSeed = () => game.seed + game.map * 977;
+  function hash(x, z) {
+    const n = Math.sin(x * 127.1 + z * 311.7 + mapSeed() * .013) * 43758.5453;
+    return n - Math.floor(n);
+  }
+  function noise(x, z) {
+    const xi = Math.floor(x), zi = Math.floor(z);
+    const fx = x - xi, fz = z - zi;
+    const u = fx * fx * (3 - 2 * fx), v = fz * fz * (3 - 2 * fz);
+    const a = hash(xi, zi), b = hash(xi + 1, zi), c = hash(xi, zi + 1), e = hash(xi + 1, zi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + e) * u * v;
+  }
+  const put = (x, y, z, id) => { if (inside(x, y, z)) world[idx(x, y, z)] = id; };
+
+  function oreAt(x, y, z, map) {
+    const r = hash(x * 3 + y * 17, z * 5 - y * 11);
+    const k = map.rich;
+    if (map.ruby && y < 16 && r < .006 * k) return RUBY;
+    if (y < 10 && r < .006 * k) return DIAMOND;
+    if (y < 18 && r < .014 * k) return GOLD;
+    if (r < .05) return IRON;
+    if (r < .11) return COAL;
+    return map.rock;
+  }
+
+  function tree(x, y, z, kind, tall) {
+    if (kind === 'cactus') {
+      const h = 2 + Math.floor(hash(x, z) * 3);
+      for (let i = 1; i <= h; i++) put(x, y + i, z, CACTUS);
+      return;
+    }
+    if (kind === 'pine') {
+      const h = 6 + Math.floor(hash(x, z) * 4);
+      for (let i = 1; i <= h; i++) put(x, y + i, z, LOG);
+      for (let l = 2; l <= h + 1; l++) {
+        const r = Math.max(0, Math.floor((h + 2 - l) / 2.4));
+        for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
+          if (Math.abs(a) + Math.abs(b) <= r + 1 && get(x + a, y + l, z + b) === AIR) put(x + a, y + l, z + b, PINE);
+        }
+      }
+      return;
+    }
+    const h = (tall ? 8 : 4) + Math.floor(hash(x, z * 2) * 3);
+    for (let i = 1; i <= h; i++) put(x, y + i, z, LOG);
+    for (let l = h - 2; l <= h + 1; l++) {
+      const r = l > h ? 1 : 2 + (tall ? 1 : 0);
+      for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
+        if (get(x + a, y + l, z + b) === AIR) put(x + a, y + l, z + b, LEAF);
+      }
+    }
+  }
+
+  function generate() {
+    const map = MAPS[game.map];
+    world.fill(0);
+    const tops = new Int16Array(W * D);
+    const s = mapSeed() * .01;
+    for (let z = 0; z < D; z++) {
+      for (let x = 0; x < W; x++) {
+        const f = map.scale;
+        const n = noise(x / f, z / f) * .6 + noise(x / (f * .42), z / (f * .42)) * .28 + noise(x / (f * .17), z / (f * .17)) * .12;
+        let top = Math.floor(map.base + n * map.amp);
+        if (map.terrace) top = Math.floor(top / map.terrace) * map.terrace;
+        top = Math.min(H - 12, top);
+        tops[x + z * W] = -1;
+        if (map.float) {
+          // Острова парят: снизу земля обрезана второй волной шума
+          const land = noise(x / 19 + 7, z / 19 + 3);
+          if (land < .5 && Math.hypot(x - W / 2, z - D / 2) > 9) continue;
+          const under = top - Math.floor(Math.max(.1, land - .5) * 34) - 2;
+          for (let y = Math.max(1, under); y <= top; y++) {
+            world[idx(x, y, z)] = y === top ? map.top : y > top - 3 ? map.sub : oreAt(x, y - 6, z, map);
+          }
+          tops[x + z * W] = top;
+          continue;
+        }
+        for (let y = 0; y <= top; y++) {
+          let id;
+          if (y === 0) id = BEDROCK;
+          else if (y === top) id = top <= map.level + 1 && map.top === GRASS ? SAND : map.top;
+          else if (y > top - 4) id = map.sub;
+          else id = oreAt(x, y, z, map);
+          // Извилистые пещеры прорезают толщу и выходят в склоны
+          if (y > 1 && y < top - 1) {
+            const cave = Math.sin(x * .17 + s) + Math.sin(y * .23 + s * 2) + Math.sin(z * .15 + s * 3) + Math.sin((x + z) * .09 + y * .11);
+            if (cave > 2.25) id = AIR;
+          }
+          world[idx(x, y, z)] = id;
+        }
+        tops[x + z * W] = top;
+        if (map.liquid) for (let y = top + 1; y <= map.level; y++) world[idx(x, y, z)] = map.liquid;
+      }
+    }
+    for (let z = 3; z < D - 3; z++) {
+      for (let x = 3; x < W - 3; x++) {
+        const top = tops[x + z * W];
+        if (top < 0 || top < map.level + 1) continue;
+        const r = hash(x * 9, z * 4);
+        if (map.treeP && r < map.treeP) tree(x, top, z, map.tree, map.tall);
+        else if (r > .9985) put(x, top + 1, z, CHEST);
+      }
+    }
+    if (map.pyramid) {
+      const px = 26, pz = 66, py = tops[px + pz * W];
+      for (let l = 0; l < 13; l++) {
+        const r = 13 - l;
+        for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
+          if (Math.abs(a) === r || Math.abs(b) === r || l === 0) put(px + a, py + l, pz + b, SANDSTONE);
+        }
+      }
+      put(px, py + 1, pz, CHEST);
+      for (let i = 1; i <= 2; i++) put(px - 13, py + i, pz, AIR);
+    }
+    edits.forEach((id, i) => { world[i] = id; });
+  }
+
+  /* Отрисовка: у каждого куска мира своя геометрия, а углы блоков темнеют рядом с соседями, и мир выглядит объёмным */
+  const FACES = [
+    { d: [0, 1, 0], s: 1, t: 0, q: [[0, 1, 0], [0, 1, 1], [1, 1, 1], [1, 1, 0]] },
+    { d: [0, -1, 0], s: .5, t: 2, q: [[0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 0, 1]] },
+    { d: [1, 0, 0], s: .78, t: 1, q: [[1, 1, 1], [1, 0, 1], [1, 0, 0], [1, 1, 0]] },
+    { d: [-1, 0, 0], s: .72, t: 1, q: [[0, 1, 0], [0, 0, 0], [0, 0, 1], [0, 1, 1]] },
+    { d: [0, 0, 1], s: .64, t: 1, q: [[0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]] },
+    { d: [0, 0, -1], s: .6, t: 1, q: [[1, 1, 0], [1, 0, 0], [0, 0, 0], [0, 1, 0]] }
+  ];
+  const UVS = [[0, 0], [0, 1], [1, 1], [1, 0]];
+  const AO = [1, .8, .62, .46];
+
+  const canvas = $('view');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8fd0ee);
+  scene.fog = new THREE.Fog(0x8fd0ee, 30, VIEW);
+  const camera = new THREE.PerspectiveCamera(74, 2, .08, 170);
+  camera.rotation.order = 'YXZ';
+  scene.add(camera);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a7a, .85));
+  const sun = new THREE.DirectionalLight(0xffffff, .6);
+  sun.position.set(.6, 1, .4);
+  scene.add(sun);
+
+  const atlas = makeAtlas();
+  const atlasUrl = 'url(' + atlas.toDataURL() + ')';
+  const texture = new THREE.CanvasTexture(atlas);
+  texture.magFilter = texture.minFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.flipY = false;
+  const material = new THREE.MeshBasicMaterial({ map: texture, vertexColors: true });
+  const liquidMat = new THREE.MeshBasicMaterial({ map: texture, vertexColors: true, transparent: true, opacity: .78, depthWrite: false, side: THREE.DoubleSide });
+
+  const chunks = new Map();
+  const dirty = new Set();
+
+  function buildChunk(cx, cz) {
+    const tint = MAPS[game.map].tint;
+    const makeBuf = () => ({ pos: [], uv: [], col: [], ind: [], n: 0 });
+    const main = makeBuf(), wet = makeBuf();
+    const px = 1 / 128, step = 16 / 128, span = step - px * .02;
+    for (let y = 0; y < H; y++) {
+      for (let z = cz * CS; z < (cz + 1) * CS; z++) {
+        for (let x = cx * CS; x < (cx + 1) * CS; x++) {
+          const id = world[idx(x, y, z)];
+          if (!id) continue;
+          const liquid = isLiquid(id);
+          const block = BLOCKS[id];
+          const buf = liquid ? wet : main;
+          for (const f of FACES) {
+            const nx = x + f.d[0], ny = y + f.d[1], nz = z + f.d[2];
+            if (liquid ? get(nx, ny, nz) !== AIR : solid(nx, ny, nz)) continue;
+            const t = block.t[f.t];
+            const u0 = (t % 8) * step, v0 = Math.floor(t / 8) * step;
+            const depth = liquid ? 1 : Math.min(1, .5 + y * .03);
+            f.q.forEach((p, i) => {
+              let ao = 1;
+              if (!liquid) {
+                const sx = f.d[0] ? 0 : p[0] * 2 - 1, sy = f.d[1] ? 0 : p[1] * 2 - 1, sz = f.d[2] ? 0 : p[2] * 2 - 1;
+                let a, b;
+                if (f.d[0]) { a = solid(nx, y + sy, z); b = solid(nx, y, z + sz); } else if (f.d[1]) { a = solid(x + sx, ny, z); b = solid(x, ny, z + sz); } else { a = solid(x + sx, y, nz); b = solid(x, y + sy, nz); }
+                const corner = solid(nx + sx, ny + sy, nz + sz);
+                ao = AO[a && b ? 3 : (a ? 1 : 0) + (b ? 1 : 0) + (corner ? 1 : 0)];
+              }
+              const light = (liquid ? 1 : f.s) * depth * ao;
+              buf.pos.push(x + p[0], y + p[1] - (liquid && p[1] ? .12 : 0), z + p[2]);
+              buf.uv.push(u0 + px * .01 + UVS[i][0] * span, v0 + px * .01 + UVS[i][1] * span);
+              buf.col.push(Math.min(1, light * tint[0]), Math.min(1, light * tint[1]), Math.min(1, light * tint[2]));
+            });
+            buf.ind.push(buf.n, buf.n + 1, buf.n + 2, buf.n, buf.n + 2, buf.n + 3);
+            buf.n += 4;
+          }
+        }
+      }
+    }
+    const key = cx + ',' + cz;
+    let c = chunks.get(key);
+    if (!c) {
+      c = { solid: new THREE.Mesh(new THREE.BufferGeometry(), material), wet: new THREE.Mesh(new THREE.BufferGeometry(), liquidMat), cx: (cx + .5) * CS, cz: (cz + .5) * CS };
+      chunks.set(key, c);
+      scene.add(c.solid, c.wet);
+    }
+    const fill = (mesh, b) => {
+      mesh.geometry.dispose();
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(b.col, 3));
+      g.setIndex(b.ind);
+      mesh.geometry = g;
+    };
+    fill(c.solid, main);
+    fill(c.wet, wet);
+  }
+
+  function setBlock(x, y, z, id) {
+    const i = idx(x, y, z);
+    world[i] = id;
+    edits.set(i, id);
+    dirtySave = true;
+    const mark = (a, b) => {
+      const cx = a >> 4, cz = b >> 4;
+      if (cx >= 0 && cz >= 0 && cx < W / CS && cz < D / CS) dirty.add(cx + ',' + cz);
+    };
+    mark(x, z); mark(x - 1, z); mark(x + 1, z); mark(x, z - 1); mark(x, z + 1);
+  }
+
+  const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), new THREE.LineBasicMaterial({ color: 0x1c2430 }));
+  outline.visible = false;
+  scene.add(outline);
+
+  /* Облака */
+  const clouds = new THREE.Group();
+  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85, fog: false });
+  for (let i = 0; i < 14; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(10 + Math.random() * 16, 2, 8 + Math.random() * 10), cloudMat);
+    m.position.set(Math.random() * 180 - 42, 62 + Math.random() * 8, Math.random() * 180 - 42);
+    clouds.add(m);
+  }
+  scene.add(clouds);
+
+  /* Парящие объёмные надписи с именами героев: туман их не скрывает, поэтому они видны через всю карту */
+  const signs = new THREE.Group();
+  function makeSign(word, color, x, z, angle) {
+    const size = 1.6, cells = [];
+    [...word].forEach((ch, l) => LETTERS[ch].forEach((line, r) => [...line].forEach((on, c) => {
+      if (on === '1') cells.push([(l * 6 + c - (word.length * 6 - 1) / 2) * size, (6 - r) * size]);
+    })));
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(size, size, size * 1.6), new THREE.MeshLambertMaterial({ color, fog: false, emissive: color, emissiveIntensity: .35 }), cells.length);
+    const place = new THREE.Object3D();
+    cells.forEach(([a, b], i) => {
+      place.position.set(a, b, 0);
+      place.updateMatrix();
+      mesh.setMatrixAt(i, place.matrix);
+    });
+    const g = new THREE.Group();
+    g.add(mesh);
+    g.position.set(x, 46, z);
+    g.rotation.y = angle;
+    signs.add(g);
+  }
+  makeSign('ХАН', 0xf7cd3c, W / 2, 6, 0);
+  makeSign('ХАНШАЙЫМ', 0xff6fb1, W / 2, D - 6, Math.PI);
+  makeSign('ХАНШАЙЫМ', 0xff6fb1, 6, D / 2, Math.PI / 2);
+  makeSign('ХАН', 0xf7cd3c, W - 6, D / 2, -Math.PI / 2);
+  scene.add(signs);
+
+  /* Простые объёмные модели собираются из коробок */
+  function box(parent, w, h, d, color, x, y, z) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+    m.position.set(x, y, z);
+    parent.add(m);
+    return m;
+  }
+
+  function makeItem(i) {
+    const g = new THREE.Group();
+    const c = WEAPONS[i].blade, wood = 0x6b4a2a;
+    if (i === 0) {
+      box(g, .08, .8, .08, wood, 0, .3, 0);
+      box(g, .55, .1, .1, c, 0, .68, 0);
+    } else if (i === 1 || i === 4 || i === 6) {
+      box(g, .08, .22, .08, wood, 0, .05, 0);
+      box(g, .34, .07, .1, 0xf7cd3c, 0, .18, 0);
+      box(g, .13, .95, .05, c, 0, .68, 0);
+      if (i > 1) box(g, .05, .7, .07, 0xfff4b0, 0, .62, 0);
+    } else if (i === 2) {
+      box(g, .08, .9, .08, wood, 0, .35, 0);
+      box(g, .1, .36, .36, c, 0, .68, .16);
+    } else if (i === 3) {
+      box(g, .14, .2, .14, 0x3a3f4a, 0, 0, 0);
+      box(g, .16, .18, .6, 0x5a6470, 0, .14, -.22);
+      box(g, .1, .1, .12, c, 0, .14, -.58);
+    } else {
+      box(g, .1, .9, .1, wood, 0, .35, 0);
+      box(g, .42, .36, .62, c, 0, .78, 0);
+    }
+    return g;
+  }
+
+  function makeHero(c, who) {
+    const person = HEROES[who];
+    const hero = new THREE.Group();
+    const limb = (x, y, color) => {
+      const p = new THREE.Group();
+      p.position.set(x, y, 0);
+      box(p, .24, .72, .24, color, 0, -.36, 0);
+      hero.add(p);
+      return p;
+    };
+    hero.legL = limb(-.14, .76, c.pants);
+    hero.legR = limb(.14, .76, c.pants);
+    box(hero, .54, .72, .3, c.shirt, 0, 1.1, 0);
+    hero.armL = limb(-.4, 1.44, c.dress ? c.skin : c.shirt);
+    hero.armR = limb(.4, 1.44, c.dress ? c.skin : c.shirt);
+    box(hero.armL, .25, .16, .25, c.skin, 0, -.74, 0);
+    box(hero.armR, .25, .16, .25, c.skin, 0, -.74, 0);
+    if (c.dress) {
+      box(hero, .7, .3, .46, c.shirt, 0, .78, 0);
+      box(hero, .86, .34, .58, c.dress, 0, .48, 0);
+      box(hero, .24, .08, .28, c.shirt, -.4, 1.42, 0);
+      box(hero, .24, .08, .28, c.shirt, .4, 1.42, 0);
+    }
+    box(hero, .48, .48, .48, c.skin, 0, 1.72, 0);
+    box(hero, .09, .09, .03, 0x20242c, -.11, 1.76, -.25);
+    box(hero, .09, .09, .03, 0x20242c, .11, 1.76, -.25);
+    box(hero, .5, .14, .5, person.hair, 0, 1.97, 0);
+    if (person.girl) {
+      box(hero, .5, .9, .1, person.hair, 0, 1.5, .26);
+      box(hero, .1, .5, .2, person.hair, -.28, 1.68, .08);
+      box(hero, .1, .5, .2, person.hair, .28, 1.68, .08);
+    }
+    const h = c.hatc;
+    if (c.hat === 'cap') { box(hero, .52, .14, .52, h, 0, 2, 0); box(hero, .3, .05, .2, h, 0, 1.94, -.32); }
+    if (c.hat === 'bow') { box(hero, .16, .16, .1, h, -.15, 2.1, 0); box(hero, .16, .16, .1, h, .15, 2.1, 0); box(hero, .1, .1, .12, 0xffe0f0, 0, 2.1, 0); }
+    if (c.hat === 'helm') { box(hero, .54, .54, .54, h, 0, 1.76, 0); box(hero, .4, .06, .03, 0x20242c, 0, 1.76, -.28); box(hero, .08, .3, .3, 0xc2303c, 0, 2.14, 0); }
+    if (c.hat === 'mask') { box(hero, .52, .22, .52, h, 0, 1.6, 0); box(hero, .52, .1, .52, h, 0, 1.95, 0); box(hero, .1, .1, .3, 0xc2303c, .1, 1.95, .38); }
+    if (c.hat === 'tricorn') { box(hero, .8, .08, .6, h, 0, 2.02, 0); box(hero, .46, .2, .4, h, 0, 2.14, 0); }
+    if (c.hat === 'space') { box(hero, .66, .66, .66, h, 0, 1.76, 0); box(hero, .46, .34, .04, 0x2fb8e0, 0, 1.76, -.34); box(hero, .3, .4, .18, 0xcfd6dc, 0, 1.14, .24); }
+    if (c.hat === 'horns') { box(hero, .1, .3, .1, h, -.18, 2.14, 0); box(hero, .1, .3, .1, h, .18, 2.14, 0); box(hero, .2, .5, .2, c.shirt, 0, .7, .3); }
+    if (c.hat === 'crown') { box(hero, .52, .16, .52, h, 0, 2.07, 0); [-.2, 0, .2].forEach(x => box(hero, .1, .14, .1, h, x, 2.21, 0)); }
+    if (c.cape) box(hero, .54, 1, .05, c.cape, 0, .96, .34);
+    if (c.wings) { box(hero, .6, .7, .04, 0xffe0f4, -.4, 1.2, .3); box(hero, .6, .7, .04, 0xffe0f4, .4, 1.2, .3); }
+    return hero;
+  }
+
+  // Плоский портрет героя для лавки и экрана выбора
+  function drawCostume(cv, c, who) {
+    cv.width = cv.height = 16;
+    const x = cv.getContext('2d');
+    const hex = n => '#' + n.toString(16).padStart(6, '0');
+    const r = (col, a, b, w, h) => { x.fillStyle = hex(col); x.fillRect(a, b, w, h); };
+    const person = HEROES[who];
+    if (c.wings) { r(0xffe0f4, 1, 6, 3, 5); r(0xffe0f4, 12, 6, 3, 5); }
+    if (c.cape) r(c.cape, 4, 7, 8, 7);
+    if (person.girl) { r(person.hair, 4, 3, 1, 6); r(person.hair, 11, 3, 1, 6); }
+    r(c.pants, 5, 11, 2, 4); r(c.pants, 9, 11, 2, 4);
+    r(c.shirt, 5, 7, 6, 4);
+    r(c.dress ? c.skin : c.shirt, 3, 7, 2, 4); r(c.dress ? c.skin : c.shirt, 11, 7, 2, 4);
+    if (c.dress) { r(c.shirt, 4, 10, 8, 1); r(c.dress, 3, 11, 10, 2); }
+    r(c.skin, 5, 3, 6, 4);
+    r(person.hair, 5, 2, 6, 2);
+    r(0x20242c, 6, 4, 1, 1); r(0x20242c, 9, 4, 1, 1);
+    const h = c.hatc;
+    if (c.hat === 'cap') r(h, 5, 2, 6, 2);
+    if (c.hat === 'bow') { r(h, 4, 1, 3, 2); r(h, 9, 1, 3, 2); r(0xffe0f0, 7, 1, 2, 2); }
+    if (c.hat === 'helm') { r(h, 5, 2, 6, 5); r(0x20242c, 6, 4, 4, 1); r(0xc2303c, 7, 0, 2, 2); }
+    if (c.hat === 'mask') { r(h, 5, 2, 6, 2); r(h, 5, 5, 6, 2); }
+    if (c.hat === 'tricorn') { r(h, 3, 2, 10, 1); r(h, 5, 1, 6, 1); }
+    if (c.hat === 'space') { r(h, 4, 1, 8, 7); r(0x2fb8e0, 5, 3, 6, 3); }
+    if (c.hat === 'horns') { r(h, 5, 1, 1, 2); r(h, 10, 1, 1, 2); }
+    if (c.hat === 'crown') { r(h, 5, 2, 6, 1); r(h, 5, 1, 1, 1); r(h, 7, 1, 2, 1); r(h, 10, 1, 1, 1); }
+  }
+
+  /* Герой */
+  const player = { x: W / 2, y: 30, z: D / 2, vy: 0, yaw: .6, pitch: -.1, ground: false, walk: 0, moving: false };
+  const HW = .3, HH = 1.8, EYE = 1.65;
+  let hero = null;
+  const hand = new THREE.Group();
+  hand.position.set(.5, -.5, -.85);
+  camera.add(hand);
+  let swing = 0;
+
+  const outfitNow = () => COSTUMES[game.outfit[game.heroId]];
+
+  function dressHero() {
+    if (hero) scene.remove(hero);
+    const c = outfitNow();
+    hero = makeHero(c, game.heroId);
+    const held = makeItem(game.hand);
+    held.position.set(0, -.8, -.06);
+    held.rotation.x = -1.2;
+    hero.armR.add(held);
+    scene.add(hero);
+    hand.clear();
+    box(hand, .24, .24, .8, c.dress ? c.skin : c.shirt, .05, -.08, .26);
+    box(hand, .25, .25, .16, c.skin, .05, -.08, -.18);
+    const it = makeItem(game.hand);
+    it.position.set(.05, -.12, -.2);
+    it.rotation.x = -.35;
+    hand.add(it);
+  }
+
+  function hits(x, y, z) {
+    for (let by = Math.floor(y); by <= Math.floor(y + HH - .001); by++) {
+      for (let bz = Math.floor(z - HW); bz <= Math.floor(z + HW); bz++) {
+        for (let bx = Math.floor(x - HW); bx <= Math.floor(x + HW); bx++) {
+          if (solid(bx, by, bz)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  const groundY = (x, z) => {
+    for (let y = H - 1; y >= 0; y--) {
+      const id = world[idx(x, y, z)];
+      // Кроны и стволы не считаются землёй, иначе дома и звери оказались бы на верхушках деревьев
+      if (id && id !== LEAF && id !== PINE && id !== LOG && id !== CACTUS) return y;
+    }
+    return -1;
+  };
+
+  function spawn() {
+    // Ближайший к центру сухой столбик
+    let best = null;
+    for (let r = 0; r < 44 && !best; r++) {
+      for (let a = 0; a < 16 && !best; a++) {
+        const x = Math.floor(W / 2 + Math.cos(a / 16 * 6.28) * r), z = Math.floor(D / 2 + Math.sin(a / 16 * 6.28) * r);
+        const y = groundY(x, z);
+        if (y > 0 && solid(x, y, z)) best = [x, y, z];
+      }
+    }
+    const [x, y, z] = best || [W / 2, H - 5, D / 2];
+    player.x = x + .5; player.y = y + 1; player.z = z + .5; player.vy = 0;
+    while (hits(player.x, player.y, player.z) && player.y < H) player.y++;
+  }
+
+  const keys = {};
+  const joy = { x: 0, y: 0, id: null };
+  let wantJump = false, attacking = false, lavaClock = 0, stepClock = 0, riding = null;
+
+  function movePlayer(dt) {
+    let ix = joy.x + ((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0));
+    let iz = joy.y + ((keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0));
+    const len = Math.hypot(ix, iz);
+    if (len > 1) { ix /= len; iz /= len; }
+    const at = get(Math.floor(player.x), Math.floor(player.y + .4), Math.floor(player.z));
+    const wet = isLiquid(at);
+    const speed = (4.6 + game.gear.boots + (riding ? 5 : 0)) * (wet ? .55 : 1);
+    const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+    const dx = (cos * ix + sin * iz) * speed, dz = (-sin * ix + cos * iz) * speed;
+    player.moving = len > .1;
+    if (player.moving) {
+      player.walk += dt * 11;
+      stepClock += dt;
+      if (player.ground && stepClock > .33) { stepClock = 0; sfx.step(); }
+    }
+
+    const jump = wantJump || keys.Space;
+    if (wet) {
+      if (jump) player.vy = 3.4;
+      player.vy = Math.max(player.vy - 8 * dt, -2.4);
+    } else {
+      if (jump && player.ground) { player.vy = 7.4 + game.gear.spring * 1.2; sfx.jump(); }
+      player.vy = Math.max(player.vy - 20 * dt, -26);
+    }
+    if (at === LAVA) {
+      lavaClock += dt;
+      if (lavaClock > .7) { lavaClock = 0; hurt(1); }
+    }
+    const nx = Math.min(W - .4, Math.max(.4, player.x + dx * dt));
+    if (!hits(nx, player.y, player.z)) player.x = nx;
+    const nz = Math.min(D - .4, Math.max(.4, player.z + dz * dt));
+    if (!hits(player.x, player.y, nz)) player.z = nz;
+    const ny = player.y + player.vy * dt;
+    player.ground = false;
+    if (hits(player.x, ny, player.z)) {
+      if (player.vy < 0) { player.y = Math.floor(ny) + 1; player.ground = true; }
+      player.vy = 0;
+    } else {
+      player.y = ny;
+    }
+    if (player.y < -6) { hurt(2); spawn(); }
+  }
+
+  const viewDir = () => {
+    const cp = Math.cos(player.pitch);
+    return [-Math.sin(player.yaw) * cp, Math.sin(player.pitch), -Math.cos(player.yaw) * cp];
+  };
+
+  // Шаг по сетке вдоль луча взгляда: находит первый блок и пустую клетку перед ним
+  function aim() {
+    const dir = viewDir();
+    const o = [camera.position.x, camera.position.y, camera.position.z];
+    const c = o.map(Math.floor);
+    const stepv = dir.map(Math.sign);
+    const delta = dir.map(v => (v === 0 ? Infinity : Math.abs(1 / v)));
+    const tm = dir.map((v, i) => (v === 0 ? Infinity : ((v > 0 ? c[i] + 1 - o[i] : o[i] - c[i]) / Math.abs(v))));
+    const reach = REACH + (game.third ? camDist : 0);
+    let prev = null, t = 0;
+    while (t <= reach) {
+      if (solid(c[0], c[1], c[2])) return { x: c[0], y: c[1], z: c[2], prev };
+      prev = c.slice();
+      const a = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2);
+      t = tm[a];
+      tm[a] += delta[a];
+      c[a] += stepv[a];
+    }
+    return null;
+  }
+
+  /* Камера от первого и третьего лица; сзади она не проходит сквозь стены */
+  let camDist = 0;
+  function updateCamera() {
+    const lift = riding ? .9 : 0;
+    const head = [player.x, player.y + EYE + lift, player.z];
+    if (!game.third) {
+      camDist = 0;
+      camera.position.set(head[0], head[1], head[2]);
+    } else {
+      const dir = viewDir();
+      const rx = Math.cos(player.yaw) * .55, rz = -Math.sin(player.yaw) * .55;
+      let d = 0;
+      while (d < 4.4) {
+        const nd = d + .2;
+        if (solid(Math.floor(head[0] + rx - dir[0] * nd), Math.floor(head[1] + .3 - dir[1] * nd), Math.floor(head[2] + rz - dir[2] * nd))) break;
+        d = nd;
+      }
+      camDist = d;
+      camera.position.set(head[0] + rx - dir[0] * d, head[1] + .3 - dir[1] * d, head[2] + rz - dir[2] * d);
+    }
+    camera.rotation.set(player.pitch, player.yaw, 0);
+    hero.visible = game.third;
+    hand.visible = !game.third;
+    hero.position.set(player.x, player.y + lift, player.z);
+    hero.rotation.y = player.yaw;
+    const w = player.moving && !riding ? Math.sin(player.walk) * .8 : 0;
+    hero.legL.rotation.x = w;
+    hero.legR.rotation.x = -w;
+    hero.armL.rotation.x = -w;
+    hero.armR.rotation.x = swing > 0 ? -1.6 - Math.sin(swing * 3.14) * 1.4 : w * .6 - .35;
+    hand.rotation.x = swing > 0 ? -Math.sin(swing * 3.14) * .9 : 0;
+  }
+
+  /* Враги */
+  const mobs = [];
+  function spawnMob() {
+    const map = MAPS[game.map];
+    if (mobs.filter(m => !m.pet && !m.beast).length >= 7) return;
+    const a = Math.random() * 6.28, r = 16 + Math.random() * 16;
+    const x = Math.floor(player.x + Math.cos(a) * r), z = Math.floor(player.z + Math.sin(a) * r);
+    if (!inside(x, 1, z)) return;
+    const y = groundY(x, z);
+    if (y < 0 || !solid(x, y, z)) return;
+    const kind = MOBS[map.mob];
+    const g = new THREE.Group();
+    const size = .7 + kind.hp * .012;
+    const body = box(g, size * 1.2, size, size * 1.2, kind.c, 0, size / 2, 0);
+    box(g, .16, .2, .05, 0xffffff, -.2, size * .7, -size * .61);
+    box(g, .16, .2, .05, 0xffffff, .2, size * .7, -size * .61);
+    box(g, .08, .1, .06, 0x101014, -.2, size * .68, -size * .63);
+    box(g, .08, .1, .06, 0x101014, .2, size * .68, -size * .63);
+    scene.add(g);
+    mobs.push({ g, body, x: x + .5, y: y + 1, z: z + .5, hp: kind.hp, kind, t: Math.random() * 6, flash: 0, cd: 0 });
+  }
+  function removeMob(m) {
+    if (m === riding) riding = null;
+    scene.remove(m.g);
+    mobs.splice(mobs.indexOf(m), 1);
+  }
+
+  function makeAnimal(a) {
+    const g = new THREE.Group();
+    const top = a.leg + a.h;
+    const body = box(g, a.w, a.h, a.l, a.c, 0, a.leg + a.h / 2, 0);
+    const hz = -a.l / 2 - a.head * .35, hy = top + a.head * .15;
+    box(g, a.head, a.head, a.head, a.fly ? 0xf0e6d0 : a.c, 0, hy, hz);
+    box(g, .05, .05, .03, 0x101014, -a.head * .28, hy + a.head * .12, hz - a.head / 2);
+    box(g, .05, .05, .03, 0x101014, a.head * .28, hy + a.head * .12, hz - a.head / 2);
+    const legs = [];
+    if (a.leg) {
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].slice(0, a.comb ? 2 : 4).forEach(([sx, sz]) => {
+        const p = new THREE.Group();
+        p.position.set(sx * a.w * .32, a.leg, (a.comb ? 0 : sz * a.l * .36));
+        box(p, .13, a.leg, .13, a.comb ? 0xf2a23a : a.c, 0, -a.leg / 2, 0);
+        g.add(p);
+        legs.push(p);
+      });
+    }
+    box(g, .08, .08, .36, a.mane || a.c, 0, top - .04, a.l / 2 + .14);
+    if (a.ears) { box(g, .07, .1, .05, a.c, -.09, hy + .17, hz); box(g, .07, .1, .05, a.c, .09, hy + .17, hz); }
+    if (a.antlers) [-.14, .14].forEach(x => { box(g, .05, .36, .05, 0xd8c8a0, x, hy + .32, hz); box(g, .22, .05, .05, 0xd8c8a0, x * 1.5, hy + .42, hz); });
+    if (a.horns) [-.22, .22].forEach(x => box(g, .12, .14, .22, 0xd8c8a0, x, hy + .08, hz + .1));
+    if (a.mane && a.big) box(g, a.head * 1.5, a.head * 1.5, a.head * .8, a.mane, 0, hy, hz + .16);
+    else if (a.mane) box(g, .08, a.h * .9, a.l * .4, a.mane, 0, top, -a.l * .28);
+    if (a.spots) [-.3, 0, .3].forEach(k => box(g, a.w + .02, a.h * .34, .14, a.spots, 0, a.leg + a.h * .6, k * a.l));
+    if (a.comb) { box(g, .06, .09, .12, 0xd8302c, 0, hy + a.head * .6, hz); box(g, .1, .05, .08, 0xf2a23a, 0, hy, hz - a.head * .6); }
+    const wings = [];
+    if (a.fly) {
+      box(g, .1, .06, .12, 0xf2c230, 0, hy, hz - a.head * .6);
+      [-1, 1].forEach(s => {
+        const p = new THREE.Group();
+        p.position.set(s * a.w / 2, top - .1, 0);
+        box(p, 1.1, .05, .6, a.c, s * .55, 0, 0);
+        g.add(p);
+        wings.push(p);
+      });
+    }
+    return { g, body, legs, wings };
+  }
+
+  function spawnAnimal(kindId) {
+    const list = ['dog', 'cat', 'deer', 'ram', 'cow', 'horse', 'chicken', 'chicken', 'eagle', 'lion', 'tiger'];
+    if (mobs.filter(m => m.pet || m.beast).length >= 12) return;
+    const id = kindId || list[Math.floor(Math.random() * list.length)];
+    const a = ANIMALS[id];
+    const t = Math.random() * 6.28, r = 14 + Math.random() * 18;
+    const x = Math.floor(player.x + Math.cos(t) * r), z = Math.floor(player.z + Math.sin(t) * r);
+    if (!inside(x, 1, z)) return;
+    const y = groundY(x, z);
+    if (y < 0 || (!a.fly && !solid(x, y, z))) return;
+    const model = makeAnimal(a);
+    scene.add(model.g);
+    mobs.push({ ...model, x: x + .5, y: y + 1, z: z + .5, cx: x, cz: z, kind: a, id, hp: a.hp || 1, pet: !a.beast, beast: a.beast, fly: a.fly, t: Math.random() * 6, flash: 0, cd: 0 });
+  }
+
+  function petAnimal(m) {
+    const a = m.kind;
+    animalSound(a.sound);
+    if (a.ride) {
+      riding = riding === m ? null : m;
+      toast(riding ? 'Вы сели на коня' : 'Вы слезли с коня');
+    } else if (a.tame) {
+      m.follow = !m.follow;
+      toast(m.follow ? `${a.n} теперь с вами` : `${a.n} гуляет сама`);
+    } else if (a.gift && m.cd === 0) {
+      m.cd = 25;
+      reward(4, `${a.gift}: +4 монеты`);
+    } else {
+      toast(`${a.n} рада вам`);
+    }
+  }
+  function updateMobs(dt) {
+    for (const m of [...mobs]) {
+      const dx = player.x - m.x, dz = player.z - m.z, dist = Math.hypot(dx, dz);
+      if (dist > 42 && !m.follow && m !== riding) { removeMob(m); continue; }
+      m.t += dt;
+      m.cd = Math.max(0, m.cd - dt);
+      if (m.fly) {
+        m.x = m.cx + Math.cos(m.t * .35) * 16;
+        m.z = m.cz + Math.sin(m.t * .35) * 16;
+        const sky = Math.min(H + 4, Math.max(m.y, groundY(Math.max(0, Math.min(W - 1, Math.floor(m.x))), Math.max(0, Math.min(D - 1, Math.floor(m.z)))) + 10));
+        m.g.position.set(m.x, sky, m.z);
+        m.y = sky;
+        m.g.rotation.y = -m.t * .35 + Math.PI;
+        m.wings.forEach((p, i) => { p.rotation.z = Math.sin(m.t * 7) * .5 * (i ? 1 : -1); });
+        continue;
+      }
+      if (m === riding) {
+        m.x = player.x; m.y = player.y; m.z = player.z;
+        m.g.position.set(m.x, m.y, m.z);
+        m.g.rotation.y = player.yaw;
+        const r = player.moving ? Math.sin(m.t * 14) * .7 : 0;
+        m.legs.forEach((p, i) => { p.rotation.x = i % 2 ? r : -r; });
+        continue;
+      }
+      const chase = m.follow ? dist > 3 : !m.pet && dist < (m.beast ? 11 : 16) && Math.abs(player.y - m.y) < 7;
+      const v = chase ? (m.follow ? 5.4 : 2.3) : m.follow ? 0 : .7;
+      if (m.legs && m.legs.length) {
+        const r = Math.sin(m.t * 9) * (v ? .6 : 0);
+        m.legs.forEach((p, i) => { p.rotation.x = i % 2 ? r : -r; });
+      }
+      const ax = chase ? dx / (dist || 1) : Math.cos(m.t * .3), az = chase ? dz / (dist || 1) : Math.sin(m.t * .3);
+      const nx = m.x + ax * v * dt, nz = m.z + az * v * dt;
+      const gy = inside(Math.floor(nx), 1, Math.floor(nz)) ? groundY(Math.floor(nx), Math.floor(nz)) : -1;
+      if (gy >= 0 && gy + 1 - m.y < 2.2 && solid(Math.floor(nx), gy, Math.floor(nz))) { m.x = nx; m.z = nz; m.y += (gy + 1 - m.y) * Math.min(1, dt * 8); }
+      const hop = m.legs ? 0 : Math.abs(Math.sin(m.t * 6)) * .32;
+      m.g.position.set(m.x, m.y + hop, m.z);
+      m.g.rotation.y = chase ? Math.atan2(chase && m.follow ? -dx : -dx, -dz) : Math.atan2(-Math.cos(m.t * .3), -Math.sin(m.t * .3));
+      m.flash = Math.max(0, m.flash - dt);
+      m.body.material.emissive.setHex(m.flash > 0 ? 0xff3030 : 0);
+      if (!m.pet && dist < (m.beast ? 1.8 : 1.2) && Math.abs(player.y - m.y) < 1.6 && m.cd === 0) {
+        m.cd = 1.3;
+        if (m.beast) animalSound('roar');
+        hurt(1);
+      }
+    }
+  }
+
+  function strike() {
+    const w = WEAPONS[game.hand];
+    const dir = viewDir();
+    const range = w.range || 3;
+    const o = [player.x, player.y + EYE, player.z];
+    let target = null, best = Infinity;
+    for (const m of mobs) {
+      const v = [m.x - o[0], m.y + .4 - o[1], m.z - o[2]];
+      const along = v[0] * dir[0] + v[1] * dir[1] + v[2] * dir[2];
+      if (along < 0 || along > range) continue;
+      const off = Math.hypot(v[0] - dir[0] * along, v[1] - dir[1] * along, v[2] - dir[2] * along);
+      if (off < (w.range ? .9 : 2) && along < best) { best = along; target = m; }
+    }
+    if (w.range) { shot(o, dir, target ? best : w.range, w.blade); sfx.laser(); } else sfx.swing();
+    if (!target) return false;
+    if (target.pet) { petAnimal(target); return true; }
+    target.hp -= w.dmg;
+    target.flash = .15;
+    target.x += dir[0] * .6;
+    target.z += dir[2] * .6;
+    sfx.hit();
+    if (target.hp <= 0) {
+      burst(target.x, target.y + .4, target.z, target.kind.c);
+      sfx.pop();
+      reward(target.kind.pay, `${target.kind.n}: +${target.kind.pay} монет`);
+      removeMob(target);
+    }
+    return true;
+  }
+
+  /* Эффекты */
+  const bits = [];
+  function burst(x, y, z, color) {
+    for (let i = 0; i < 7; i++) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(.14, .14, .14), new THREE.MeshBasicMaterial({ color }));
+      m.position.set(x, y, z);
+      scene.add(m);
+      bits.push({ m, vx: Math.random() * 4 - 2, vy: Math.random() * 4 + 1, vz: Math.random() * 4 - 2, t: .6 });
+    }
+  }
+  function shot(o, dir, len, color) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(.06, .06, len), new THREE.MeshBasicMaterial({ color }));
+    m.position.set(o[0] + dir[0] * len / 2, o[1] - .2 + dir[1] * len / 2, o[2] + dir[2] * len / 2);
+    m.lookAt(o[0] + dir[0] * len, o[1] - .2 + dir[1] * len, o[2] + dir[2] * len);
+    scene.add(m);
+    bits.push({ m, vx: 0, vy: 0, vz: 0, t: .08, still: true });
+  }
+  function updateBits(dt) {
+    for (const b of [...bits]) {
+      b.t -= dt;
+      if (b.t <= 0) { scene.remove(b.m); bits.splice(bits.indexOf(b), 1); continue; }
+      if (b.still) continue;
+      b.vy -= 12 * dt;
+      b.m.position.x += b.vx * dt; b.m.position.y += b.vy * dt; b.m.position.z += b.vz * dt;
+    }
+  }
+
+  /* Звуки синтезируются на лету, поэтому игре не нужны звуковые файлы */
+  let audio = null, musicTimer = 0;
+  function tone(freq, len, type = 'square', vol = .04, delay = 0, slide = 0) {
+    if (!audio || game.muted) return;
+    const o = audio.createOscillator(), g = audio.createGain();
+    const at = audio.currentTime + delay;
+    o.type = type;
+    o.frequency.setValueAtTime(freq, at);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, at + len);
+    g.gain.setValueAtTime(vol, at);
+    g.gain.exponentialRampToValueAtTime(.0008, at + len);
+    o.connect(g).connect(audio.destination);
+    o.start(at);
+    o.stop(at + len);
+  }
+  const tune = (notes, gap = .09, type = 'square', vol = .04) => notes.forEach((n, i) => tone(n, gap * 1.6, type, vol, i * gap));
+  const sfx = {
+    step: () => tone(90 + Math.random() * 40, .05, 'triangle', .025),
+    jump: () => tone(260, .16, 'square', .03, 0, 620),
+    swing: () => tone(420, .1, 'sawtooth', .02, 0, 140),
+    hit: () => tone(170, .1, 'square', .05, 0, 70),
+    pop: () => tune([660, 880, 1320], .05),
+    laser: () => tone(1500, .16, 'sawtooth', .03, 0, 220),
+    dig: () => tone(200 + Math.random() * 90, .05, 'triangle', .05),
+    place: () => tone(330, .06, 'triangle', .05, 0, 220),
+    coin: () => tune([988, 1319], .07),
+    chest: () => tune([523, 659, 784, 1047, 1319], .08),
+    quest: () => tune([659, 784, 988, 1319], .1, 'triangle', .07),
+    buy: () => tune([392, 523, 784], .08),
+    hurt: () => tone(180, .25, 'sawtooth', .05, 0, 60),
+    khan: () => tune([262, 330, 392, 523, 659], .11, 'triangle', .08),
+    girl: () => tune([784, 988, 1175, 1568, 1976], .09, 'sine', .08)
+  };
+  function animalSound(name) {
+    if (name === 'woof') { tone(240, .1, 'square', .05, 0, 120); tone(240, .1, 'square', .05, .16, 120); }
+    if (name === 'meow') tone(620, .32, 'sine', .06, 0, 880);
+    if (name === 'deer') tone(520, .22, 'triangle', .05, 0, 300);
+    if (name === 'baa') { tone(320, .4, 'sawtooth', .025, 0, 280); tone(330, .4, 'sawtooth', .02, .03, 290); }
+    if (name === 'moo') tone(150, .6, 'sawtooth', .04, 0, 105);
+    if (name === 'neigh') tone(900, .45, 'square', .025, 0, 320);
+    if (name === 'roar') tone(130, .6, 'sawtooth', .07, 0, 55);
+    if (name === 'cluck') tune([700, 560, 700, 900], .07, 'square', .025);
+    if (name === 'cry') tone(1700, .55, 'sine', .04, 0, 950);
+  }
+
+  const SONG = [392, 440, 523, 587, 659, 587, 523, 440, 392, 523, 659, 784, 659, 523, 587, 440];
+  function startMusic() {
+    if (musicTimer) return;
+    let i = 0;
+    musicTimer = setInterval(() => {
+      tone(SONG[i % SONG.length], .5, 'sine', .014);
+      if (i % 4 === 0) tone(SONG[i % SONG.length] / 2, .9, 'triangle', .012);
+      i++;
+    }, 460);
+  }
+  function greet(who) {
+    const person = HEROES[who];
+    const el = $('hello');
+    el.textContent = person.hello;
+    el.classList.toggle('girl', Boolean(person.girl));
+    el.hidden = false;
+    clearTimeout(greet.timer);
+    greet.timer = setTimeout(() => { el.hidden = true; }, 2600);
+    (person.girl ? sfx.girl : sfx.khan)();
+    // Голос зависит от телефона: если его нет, остаются надпись и мелодия
+    try {
+      if (game.muted || !window.speechSynthesis) return;
+      speechSynthesis.cancel();
+      const say = new SpeechSynthesisUtterance(person.hello);
+      say.lang = 'ru-RU';
+      say.pitch = person.girl ? 1.5 : .9;
+      setTimeout(() => speechSynthesis.speak(say), 500);
+    } catch (e) {}
+  }
+
+  /* Экономика */
+  function reward(n, text) {
+    game.coins += n;
+    dirtySave = true;
+    toast(text);
+    sfx.coin();
+    renderHud();
+  }
+
+  function hurt(n) {
+    hp -= n;
+    sfx.hurt();
+    const el = $('hurt');
+    el.classList.add('is-on');
+    requestAnimationFrame(() => el.classList.remove('is-on'));
+    if (hp <= 0) {
+      const lost = Math.floor(game.coins * .1);
+      game.coins -= lost;
+      hp = maxHp();
+      spawn();
+      toast(lost ? `Герой упал без сил и потерял ${lost} монет` : 'Герой упал без сил');
+    }
+    renderHud();
+  }
+
+  function nextQuest() {
+    const n = game.questsDone;
+    const map = MAPS[game.map];
+    const pool = [map.rock, LOG, COAL, IRON, GOLD].filter(id => BLOCKS[id].sell);
+    const id = pool[n % pool.length];
+    const need = Math.max(2, Math.round(12 / Math.sqrt(BLOCKS[id].sell)));
+    game.quest = { id, need, got: 0, pay: need * BLOCKS[id].sell * 3 };
+  }
+
+  function countQuest(id) {
+    const q = game.quest;
+    if (!q || q.id !== id) return;
+    q.got++;
+    if (q.got >= q.need) {
+      game.questsDone++;
+      const pay = q.pay;
+      nextQuest();
+      sfx.quest();
+      reward(pay, `Задание выполнено: +${pay} монет`);
+    }
+  }
+
+  const digTime = id => BLOCKS[id].h / (1 + game.gear.pick * .6);
+
+  function finishDig(hit, id) {
+    setBlock(hit.x, hit.y, hit.z, AIR);
+    burst(hit.x + .5, hit.y + .5, hit.z + .5, BLOCKS[id].c);
+    sfx.dig();
+    if (id === CHEST) {
+      const pay = 25 + Math.floor(Math.random() * 40) * (game.map + 1);
+      sfx.chest();
+      reward(pay, `Сундук: +${pay} монет`);
+      return;
+    }
+    const drop = BLOCKS[id].drop;
+    if (drop === LEAF && Math.random() < .7) return;
+    game.inv[drop] = (game.inv[drop] || 0) + 1;
+    countQuest(drop);
+    renderHud();
+  }
+
+  const bagItems = () => BLOCKS.map((b, id) => (b && game.inv[id] > 0 ? id : -1)).filter(id => id > 0);
+
+  function place() {
+    const hit = aim();
+    const items = bagItems();
+    if (!items.includes(game.block)) {
+      toast(items.length ? 'Выберите блок на нижней панели' : 'Сумка пуста: сначала выкопайте блоки');
+      return;
+    }
+    if (!hit || !hit.prev) return;
+    const [x, y, z] = hit.prev;
+    if (!inside(x, y, z)) return;
+    const was = get(x, y, z);
+    setBlock(x, y, z, game.block);
+    if (hits(player.x, player.y, player.z)) { setBlock(x, y, z, was); return; }
+    game.inv[game.block]--;
+    sfx.place();
+    renderHud();
+  }
+
+  function switchMap(i) {
+    game.edits[game.map] = [...edits];
+    game.map = i;
+    edits = new Map(game.edits[i] || []);
+    enterMap();
+    nextQuest();
+    save();
+    renderHud();
+    sfx.quest();
+    toast(MAPS[i].n);
+  }
+
+  function enterMap() {
+    [...mobs].forEach(removeMob);
+    const map = MAPS[game.map];
+    scene.background.setHex(map.sky);
+    scene.fog.color.setHex(map.sky);
+    cloudMat.opacity = map.sky === 0x4a2a2a ? .15 : .85;
+    generate();
+    for (let cz = 0; cz < D / CS; cz++) for (let cx = 0; cx < W / CS; cx++) buildChunk(cx, cz);
+    dirty.clear();
+    spawn();
+  }
+
+  function chooseHero(who) {
+    game.heroId = who;
+    dirtySave = true;
+    dressHero();
+    greet(who);
+    renderHud();
+  }
+
+  /* Интерфейс */
+  let toastTimer = 0;
+  function toast(text) {
+    const el = $('toast');
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
+  }
+
+  function renderHud() {
+    $('coins').textContent = game.coins + ' мон';
+    $('hearts').replaceChildren(...Array.from({ length: maxHp() }, (_, i) => {
+      const h = document.createElement('i');
+      if (i >= hp) h.className = 'off';
+      return h;
+    }));
+    const q = game.quest;
+    $('quest').innerHTML = '';
+    const b = document.createElement('b');
+    b.textContent = `+${q.pay}  `;
+    $('quest').append(b, `${BLOCKS[q.id].n}: ${q.got} из ${q.need}`);
+    $('mute').textContent = game.muted ? 'Тихо' : 'Звук';
+
+    const items = bagItems();
+    if (!items.includes(game.block)) game.block = items[0] || 0;
+    const slots = game.weapons.map(i => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot' + (i === game.hand ? ' is-on' : '');
+      btn.setAttribute('aria-label', WEAPONS[i].n);
+      btn.innerHTML = iconSvg(i);
+      btn.addEventListener('click', () => { game.hand = i; dirtySave = true; dressHero(); renderHud(); });
+      return btn;
+    });
+    items.forEach(id => {
+      const t = BLOCKS[id].t[1];
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot' + (id === game.block ? ' is-on' : '');
+      btn.setAttribute('aria-label', BLOCKS[id].n);
+      btn.style.backgroundImage = atlasUrl;
+      btn.style.backgroundPosition = `${(t % 8) / 7 * 100}% ${Math.floor(t / 8) / 7 * 100}%`;
+      const n = document.createElement('span');
+      n.textContent = game.inv[id];
+      btn.append(n);
+      btn.addEventListener('click', () => { game.block = id; dirtySave = true; renderHud(); });
+      slots.push(btn);
+    });
+    $('bar').replaceChildren(...slots);
+    if (!$('shop').hidden) renderShop();
+  }
+
+  function row(pic, title, sub, label, disabled, onClick, on) {
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.append(pic || document.createElement('span'));
+    const text = document.createElement('div');
+    text.textContent = title;
+    const small = document.createElement('small');
+    small.textContent = sub;
+    text.append(small);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'buy' + (on ? ' is-on' : '');
+    btn.textContent = label;
+    btn.disabled = disabled;
+    btn.addEventListener('click', onClick);
+    item.append(text, btn);
+    return item;
+  }
+
+  const TABS = ['Герои', 'Продать', 'Оружие', 'Костюмы', 'Карты', 'Дома', 'Улучшения', 'Блоки'];
+
+  function buildHouse(p) {
+    const dir = viewDir(), far = Math.max(p.w, p.l) / 2 + 4;
+    const cx = Math.floor(player.x + dir[0] * far), cz = Math.floor(player.z + dir[2] * far);
+    const x0 = cx - Math.floor(p.w / 2), z0 = cz - Math.floor(p.l / 2);
+    if (x0 < 1 || z0 < 1 || x0 + p.w >= W - 1 || z0 + p.l >= D - 1) { toast('Здесь край карты. Отойдите ближе к центру'); return false; }
+    const y0 = groundY(cx, cz) + 1;
+    if (y0 < 1 || y0 + p.h + 8 >= H) { toast('Здесь строить нельзя'); return false; }
+    const doorX = x0 + Math.floor(p.w / 2);
+    const faceSouth = dir[2] < 0 || Math.abs(dir[0]) > Math.abs(dir[2]);
+    const doorZ = faceSouth ? z0 + p.l - 1 : z0;
+    for (let x = x0; x < x0 + p.w; x++) {
+      for (let z = z0; z < z0 + p.l; z++) {
+        const edge = x === x0 || z === z0 || x === x0 + p.w - 1 || z === z0 + p.l - 1;
+        for (let y = y0 - 4; y < y0; y++) if (y > 0 && get(x, y, z) === AIR) setBlock(x, y, z, DIRT);
+        setBlock(x, y0 - 1, z, p.castle ? STONE : PLANK);
+        for (let y = y0; y < y0 + p.h; y++) {
+          const door = z === doorZ && Math.abs(x - doorX) < (p.castle ? 2 : 1) && y < y0 + (p.castle ? 3 : 2);
+          const win = !p.castle && y === y0 + 1 && !door && edge && (x + z) % 3 === 0 && !(x === x0 || x === x0 + p.w - 1) !== !(z === z0 || z === z0 + p.l - 1);
+          setBlock(x, y, z, !edge || door ? AIR : win ? GLASS : p.wall);
+        }
+        if (p.castle) {
+          if (edge && (x + z) % 2 === 0) setBlock(x, y0 + p.h, z, p.wall);
+        } else {
+          const roofUp = Math.min(x - x0, x0 + p.w - 1 - x, z - z0, z0 + p.l - 1 - z);
+          for (let y = 0; y <= roofUp; y++) setBlock(x, y0 + p.h + y, z, y === roofUp ? p.roof : AIR);
+        }
+      }
+    }
+    if (p.castle) {
+      [[x0, z0], [x0 + p.w - 3, z0], [x0, z0 + p.l - 3], [x0 + p.w - 3, z0 + p.l - 3]].forEach(([tx, tz]) => {
+        for (let x = tx; x < tx + 3; x++) for (let z = tz; z < tz + 3; z++) for (let y = y0; y < y0 + p.h + 5; y++) setBlock(x, y, z, y >= y0 + p.h + 4 ? p.roof : p.wall);
+      });
+    }
+    sfx.chest();
+    toast(`Построено: ${p.n}`);
+    return true;
+  }
+  let tab = 1;
+
+  function spend(n) {
+    game.coins -= n;
+    dirtySave = true;
+    sfx.buy();
+  }
+
+  function svgPic(i) {
+    const s = document.createElement('span');
+    s.innerHTML = iconSvg(i);
+    return s.firstChild;
+  }
+
+  function renderShop() {
+    $('tabs').replaceChildren(...TABS.map((t, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tab' + (i === tab ? ' is-on' : '');
+      b.textContent = t;
+      b.addEventListener('click', () => { tab = i; renderShop(); });
+      return b;
+    }));
+    let rows = [];
+    if (tab === 0) {
+      rows = HEROES.map((h, i) => {
+        const pic = document.createElement('canvas');
+        drawCostume(pic, COSTUMES[game.outfit[i]], i);
+        const owned = game.heroes.includes(i);
+        const label = i === game.heroId ? 'Выбран' : owned ? 'Выбрать' : `${h.cost} мон`;
+        return row(pic, h.n, COSTUMES[game.outfit[i]].n, label, i === game.heroId || (!owned && game.coins < h.cost), () => {
+          if (!owned) { spend(h.cost); game.heroes.push(i); }
+          chooseHero(i);
+          renderShop();
+        }, i === game.heroId);
+      });
+    }
+    $('sell-all').hidden = true;
+    if (tab === 1) {
+      const own = ORES.filter(id => game.inv[id] > 0);
+      rows = own.length
+        ? own.map(id => row(null, BLOCKS[id].n, `${game.inv[id]} шт, по ${BLOCKS[id].sell} мон`, `+${game.inv[id] * BLOCKS[id].sell}`, false, () => {
+          const pay = game.inv[id] * BLOCKS[id].sell;
+          game.inv[id] = 0;
+          reward(pay, `Продано: +${pay} монет`);
+        }))
+        : [row(null, 'Продавать пока нечего', 'Камень, брёвна и руда идут на продажу', 'Пусто', true, () => {})];
+      $('sell-all').hidden = !own.length;
+    }
+    if (tab === 2) {
+      rows = WEAPONS.map((w, i) => {
+        const owned = game.weapons.includes(i);
+        const label = i === game.hand ? 'В руках' : owned ? 'Взять' : `${w.cost} мон`;
+        return row(svgPic(i), w.n, w.d, label, i === game.hand || (!owned && game.coins < w.cost), () => {
+          if (!owned) { spend(w.cost); game.weapons.push(i); }
+          game.hand = i;
+          dirtySave = true;
+          dressHero();
+          renderHud();
+          renderShop();
+        }, i === game.hand);
+      });
+    }
+    if (tab === 3) {
+      const sex = HEROES[game.heroId].girl ? 1 : 0;
+      const list = COSTUMES.map((c, i) => [c, i]).filter(([c]) => (c.own === undefined ? c.who === undefined || c.who === sex : c.own === game.heroId));
+      rows = list.map(([c, i]) => {
+        const owned = game.costumes.includes(i);
+        const worn = i === game.outfit[game.heroId];
+        const pic = document.createElement('canvas');
+        drawCostume(pic, c, game.heroId);
+        const label = worn ? 'Надет' : owned ? 'Надеть' : `${c.cost} мон`;
+        return row(pic, c.n, c.dress ? 'Платье' : c.cape ? 'С плащом' : owned ? 'Куплен' : 'Новый образ', label, worn || (!owned && game.coins < c.cost), () => {
+          if (!owned) { spend(c.cost); game.costumes.push(i); }
+          game.outfit[game.heroId] = i;
+          dirtySave = true;
+          dressHero();
+          renderHud();
+          renderShop();
+        }, worn);
+      });
+    }
+    if (tab === 4) {
+      rows = MAPS.map((m, i) => {
+        const owned = game.maps.includes(i);
+        const pic = document.createElement('div');
+        pic.className = 'swatch';
+        pic.style.background = '#' + m.sky.toString(16).padStart(6, '0');
+        const label = i === game.map ? 'Вы здесь' : owned ? 'Поехать' : `${m.cost} мон`;
+        return row(pic, m.n, m.d, label, i === game.map || (!owned && game.coins < m.cost), () => {
+          if (!owned) { spend(m.cost); game.maps.push(i); }
+          $('shop').hidden = true;
+          switchMap(i);
+        }, i === game.map);
+      });
+    }
+    if (tab === 5) {
+      rows = HOUSES.map(p => row(null, p.n, p.d, `${p.cost} мон`, game.coins < p.cost, () => {
+        $('shop').hidden = true;
+        if (buildHouse(p)) { game.coins -= p.cost; dirtySave = true; renderHud(); }
+      }));
+    }
+    if (tab === 6) {
+      rows = GEAR.map(g => {
+        const lvl = game.gear[g.id], cost = g.costs[lvl];
+        return row(null, `${g.n}, ур. ${lvl}`, g.d, cost ? `${cost} мон` : 'Максимум', !cost || game.coins < cost, () => {
+          spend(cost);
+          game.gear[g.id]++;
+          if (g.id === 'armor') hp = maxHp();
+          toast(`${g.n}: уровень ${game.gear[g.id]}`);
+          renderHud();
+          renderShop();
+        });
+      });
+    }
+    if (tab === 7) {
+      rows = [PLANK, BRICK, GLASS].map(id => row(null, `${BLOCKS[id].n}, 10 шт`, `В сумке ${game.inv[id] || 0}`, `${BLOCKS[id].buy * 10} мон`, game.coins < BLOCKS[id].buy * 10, () => {
+        spend(BLOCKS[id].buy * 10);
+        game.inv[id] = (game.inv[id] || 0) + 10;
+        renderHud();
+        renderShop();
+      }));
+    }
+    $('shop-list').replaceChildren(...rows);
+  }
+
+  $('shop-btn').addEventListener('click', () => { $('shop').hidden = false; renderShop(); });
+  $('shop-close').addEventListener('click', () => { $('shop').hidden = true; });
+  $('sell-all').addEventListener('click', () => {
+    const total = ORES.reduce((sum, id) => sum + (game.inv[id] || 0) * BLOCKS[id].sell, 0);
+    ORES.forEach(id => { game.inv[id] = 0; });
+    reward(total, `Продано: +${total} монет`);
+  });
+  $('cam').addEventListener('click', () => { game.third = !game.third; dirtySave = true; });
+  $('mute').addEventListener('click', () => { game.muted = !game.muted; dirtySave = true; renderHud(); });
+
+  [0, 1].forEach(who => {
+    drawCostume($('pic-' + who), COSTUMES[game.outfit[who]], who);
+    $('pick-' + who).addEventListener('click', async () => {
+      $('intro').hidden = true;
+      try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
+      startMusic();
+      chooseHero(who);
+      const today = new Date().toDateString();
+      if (game.day !== today) {
+        game.day = today;
+        reward(10, 'Подарок за сегодняшний день: +10 монет');
+      }
+      // Настоящий браузер может отказать, тогда работает просьба повернуть телефон
+      try {
+        await document.documentElement.requestFullscreen();
+        await screen.orientation.lock('landscape');
+      } catch (e) {}
+    });
+  });
+
+  /* Управление */
+  const look = { id: null, x: 0, y: 0 };
+  const lookEl = $('look');
+  lookEl.addEventListener('pointerdown', e => {
+    if (look.id !== null) return;
+    lookEl.setPointerCapture(e.pointerId);
+    Object.assign(look, { id: e.pointerId, x: e.clientX, y: e.clientY });
+  });
+  lookEl.addEventListener('pointermove', e => {
+    if (e.pointerId !== look.id) return;
+    player.yaw -= (e.clientX - look.x) * .006;
+    player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - (e.clientY - look.y) * .006));
+    look.x = e.clientX; look.y = e.clientY;
+  });
+  const endLook = e => { if (e.pointerId === look.id) look.id = null; };
+  lookEl.addEventListener('pointerup', endLook);
+  lookEl.addEventListener('pointercancel', endLook);
+
+  const joyEl = $('joy'), stick = $('stick');
+  function moveStick(e) {
+    const r = joyEl.getBoundingClientRect();
+    const max = r.width / 2;
+    let x = (e.clientX - r.left - max) / max, y = (e.clientY - r.top - max) / max;
+    const len = Math.hypot(x, y);
+    if (len > 1) { x /= len; y /= len; }
+    joy.x = x; joy.y = y;
+    stick.style.transform = `translate(${x * max * .6}px, ${y * max * .6}px)`;
+  }
+  joyEl.addEventListener('pointerdown', e => { joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); moveStick(e); });
+  joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id) moveStick(e); });
+  const endJoy = e => {
+    if (e.pointerId !== joy.id) return;
+    joy.id = null; joy.x = 0; joy.y = 0;
+    stick.style.transform = '';
+  };
+  joyEl.addEventListener('pointerup', endJoy);
+  joyEl.addEventListener('pointercancel', endJoy);
+
+  function holdKey(el, on, off) {
+    el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); on(); });
+    ['pointerup', 'pointercancel'].forEach(t => el.addEventListener(t, off));
+  }
+  holdKey($('jump'), () => { wantJump = true; }, () => { wantJump = false; });
+  holdKey($('attack'), () => { attacking = true; }, () => { attacking = false; });
+  $('build').addEventListener('click', place);
+  addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'KeyE') attacking = true;
+    if (e.code === 'KeyQ') place();
+    if (e.code === 'KeyV') $('cam').click();
+  });
+  addEventListener('keyup', e => {
+    keys[e.code] = false;
+    if (e.code === 'KeyE') attacking = false;
+  });
+
+  function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize);
+
+  /* Игровой цикл */
+  let digKey = '', digDone = 0, last = performance.now(), saveClock = 0, swingCd = 0, mobClock = 0, regen = 0, digTick = 0;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - last) / 1000);
+    last = now;
+    const portrait = innerHeight > innerWidth;
+    const paused = !$('intro').hidden || !$('shop').hidden || portrait;
+
+    if (!paused) {
+      movePlayer(dt);
+      updateMobs(dt);
+      mobClock += dt;
+      if (mobClock > 3) { mobClock = 0; spawnMob(); spawnAnimal(); }
+      regen += dt;
+      if (regen > 8 && hp < maxHp()) { regen = 0; hp++; renderHud(); }
+    }
+    updateBits(dt);
+    updateCamera();
+    clouds.position.x = (clouds.position.x + dt * .8) % 60;
+    // День и ночь сменяются за четыре минуты
+    const daylight = .66 + .34 * Math.cos(now / 38000);
+    scene.background.setHex(MAPS[game.map].sky).multiplyScalar(daylight);
+    scene.fog.color.copy(scene.background);
+    material.color.setScalar(daylight);
+    liquidMat.color.setScalar(daylight);
+    signs.children.forEach((g, i) => { g.position.y = 46 + Math.sin(now * .001 + i) * .8; });
+
+    chunks.forEach(c => {
+      const near = Math.hypot(c.cx - player.x, c.cz - player.z) < VIEW + 14;
+      c.solid.visible = c.wet.visible = near;
+    });
+
+    const hit = aim();
+    outline.visible = Boolean(hit);
+    if (hit) outline.position.set(hit.x + .5, hit.y + .5, hit.z + .5);
+
+    swingCd = Math.max(0, swingCd - dt);
+    swing = Math.max(0, swing - dt * 4);
+    let struck = false;
+    if (!paused && attacking && swingCd === 0) {
+      swingCd = WEAPONS[game.hand].rate;
+      swing = 1;
+      struck = strike();
+    }
+    if (!paused && attacking && hit && !struck) {
+      const key = `${hit.x},${hit.y},${hit.z}`;
+      if (key !== digKey) { digKey = key; digDone = 0; }
+      const id = get(hit.x, hit.y, hit.z);
+      digDone += dt / digTime(id);
+      digTick += dt;
+      if (digTick > .22) { digTick = 0; sfx.dig(); }
+      $('dig').hidden = id === BEDROCK;
+      $('dig-fill').style.width = Math.min(100, digDone * 100) + '%';
+      if (digDone >= 1) { finishDig(hit, id); digKey = ''; digDone = 0; }
+    } else if (!attacking || !hit) {
+      digKey = '';
+      digDone = 0;
+      $('dig').hidden = true;
+    }
+
+    dirty.forEach(key => {
+      const [cx, cz] = key.split(',').map(Number);
+      buildChunk(cx, cz);
+    });
+    dirty.clear();
+
+    saveClock += dt;
+    if (saveClock > 4) {
+      saveClock = 0;
+      if (dirtySave) save();
+    }
+    renderer.render(scene, camera);
+  }
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+  dressHero();
+  enterMap();
+  if (!game.quest) nextQuest();
+  resize();
+  renderHud();
+  requestAnimationFrame(frame);
+  for (let i = 0; i < 8; i++) spawnAnimal();
+  window.ruda = { game, player, mobs, spawnMob, spawnAnimal, switchMap, aim, setAttack: v => { attacking = v; }, place, chooseHero, buildHouse, HOUSES, setTab: t => { tab = t; }, MAPS, HEROES, COSTUMES, viewDir };
+</script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+</html>
