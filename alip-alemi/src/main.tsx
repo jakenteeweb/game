@@ -21,8 +21,8 @@ function Crash({ message }: { message: string }) {
     <div className="screen">
       <div className="center">
         <div style={{ fontSize: 72 }}>🦊</div>
-        <p style={{ maxWidth: 360 }}>Что-то пошло не так. Нажмите «Обновить». Если не поможет, откройте ссылку в Chrome или Safari напрямую.</p>
-        <button className="btn primary" onClick={() => location.reload()}>Обновить</button>
+        <p style={{ maxWidth: 360 }}>Бірдеңе дұрыс болмады. «Жаңарту» батырмасын басыңыз. Көмектеспесе, сілтемені Chrome немесе Safari браузерінде тікелей ашыңыз.</p>
+        <button className="btn primary" onClick={() => location.reload()}>Жаңарту</button>
         <p className="muted" style={{ fontSize: 12, maxWidth: 360, wordBreak: 'break-word' }}>{message}</p>
       </div>
     </div>

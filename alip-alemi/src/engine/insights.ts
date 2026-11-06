@@ -11,16 +11,16 @@ export function stateOf(p: ItemProgress | undefined): ItemState {
 }
 
 const STAGE_NAMES: Record<string, string> = {
-  intro: 'знакомство', recognize: 'узнавание', listen: 'на слух', trace: 'обведение', write: 'написать самому', balloons: 'игра-закрепление',
-  check: 'проверка после перерыва', numIntro: 'знакомство', count: 'пересчёт', basket: 'корзина', chooseGroup: 'выбор группы',
-  findDigit: 'поиск цифры',
+  intro: 'танысу', recognize: 'тану', listen: 'тыңдап тану', trace: 'бойлап сызу', write: 'өзі жазу', balloons: 'бекіту ойыны',
+  check: 'үзілістен кейінгі тексеру', numIntro: 'танысу', count: 'санау', basket: 'себет', chooseGroup: 'топты таңдау',
+  findDigit: 'цифрды табу', matchDigit: 'санға цифр табу',
 };
 
 export function stageLabel(p: ItemProgress): string {
   const stages = CURRICULUM.stages[p.track];
-  if (p.mastered) return 'освоено';
+  if (p.mastered) return 'меңгерді';
   const next = stages[p.stage];
-  return next ? `дальше: ${STAGE_NAMES[next] ?? next}` : 'почти освоено';
+  return next ? `келесі: ${STAGE_NAMES[next] ?? next}` : 'меңгеруге жақын';
 }
 
 export function observations(progress: Record<string, ItemProgress>, canHear: (itemId: string) => boolean): string[] {
@@ -34,27 +34,27 @@ export function observations(progress: Record<string, ItemProgress>, canHear: (i
     const isLetter = p.track === 'letters';
 
     if (isLetter && visual.independent >= 2 && audio.errors > audio.independent && audio.errors >= 2) {
-      out.push(`Узнаёт ${g} по виду, но пока путает на слух.`);
+      out.push(`${g} әрпін көргенде таниды, бірақ естігенде әлі шатастырады.`);
     } else if (isLetter && audio.independent >= 2 && visual.errors > visual.independent && visual.errors >= 2) {
-      out.push(`Узнаёт ${g} на слух, но пока путает по виду.`);
+      out.push(`${g} әрпін естігенде таниды, бірақ көргенде әлі шатастырады.`);
     }
     if (isLetter && !canHear(p.itemId) && p.stage >= 3) {
-      out.push(`Понимание ${g} на слух не проверялось: для этой буквы нет казахской озвучки.`);
+      out.push(`${g} әрпін тыңдап тану тексерілмеді: бұл әріпке қазақша дыбыстау жоқ.`);
     }
     if (!isLetter && visual.independent >= 2 && quantity.errors > quantity.independent && quantity.errors >= 2) {
-      out.push(`Узнаёт цифру ${g}, но пока не всегда соотносит её с количеством.`);
+      out.push(`${g} цифрын таниды, бірақ оны заттардың санымен әрдайым сәйкестендіре бермейді.`);
     }
     if (!isLetter && quantity.independent >= 2 && visual.errors > visual.independent && visual.errors >= 2) {
-      out.push(`Хорошо считает до ${g}, но цифру ${g} пока путает с другими.`);
+      out.push(`Заттарды жақсы санайды, бірақ ${g} цифрын басқа цифрлармен әлі шатастырады.`);
     }
     if (practice.errors >= 3 && practice.independent === 0) {
-      out.push(`Обведение ${g} пока даётся непросто — это нормально, мелкая моторика развивается постепенно.`);
+      out.push(`${g} таңбасын бойлап сызу әзірге қиындау — бұл қалыпты, қол моторикасы біртіндеп дамиды.`);
     }
     const helped = Object.values(p.skills).reduce((a, s) => a + s.helped, 0);
     if (helped >= 3 && helped > totalIndependent(p)) {
-      out.push(`С ${g} пока часто нужна подсказка — приложение чаще возвращается к этому символу в простых заданиях.`);
+      out.push(`${g} таңбасында әзірге жиі көмек керек — қосымша оған қарапайым тапсырмаларда жиірек оралады.`);
     }
-    if (p.mastered) out.push(`${g} — освоено: самостоятельные ответы в разных заданиях и в разные дни.`);
+    if (p.mastered) out.push(`${g} — меңгерілді: әр түрлі тапсырмаларда және әр күні өз бетімен дұрыс жауап берді.`);
   }
   return out;
 }

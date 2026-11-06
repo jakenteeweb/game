@@ -61,15 +61,15 @@ const PREPARED: Record<string, { word: string; picture: string; image?: string; 
   'Т': { word: 'түлкі', image: 'img/fox.webp', picture: '🦊', sentence: 'Түлкі. Түлкі сөзінде Т әрпі бар.', sound: '[т]' },
   'Ә': {
     word: 'әтеш', image: 'img/rooster.webp', picture: '🐓', sentence: 'Әтеш. Әтеш сөзінде Ә әрпі бар.', confusable: ['А', 'Э'],
-    methodNote: 'Специфическая казахская буква. Не сравнивать с русской «Э».',
+    methodNote: 'Қазақ тіліне тән әріп. Орыс тіліндегі «Э» әрпімен салыстырмау керек.',
   },
   'Қ': {
     word: 'қоян', image: 'img/rabbit.webp', picture: '🐇', sentence: 'Қоян. Қоян сөзінде Қ әрпі бар.', sound: '[қ]', confusable: ['К'],
-    methodNote: 'Обратить внимание на «хвостик» внизу справа — он отличает Қ от К.',
+    methodNote: 'Төменгі оң жақтағы «құйрыққа» назар аударыңыз — ол Қ-ны К-дан ажыратады.',
   },
   'Ү': {
     word: 'үй', image: 'img/house.webp', picture: '🏠', sentence: 'Үй. Үй сөзінде Ү әрпі бар.', confusable: ['Ұ', 'У'],
-    methodNote: 'Ү — с прямой ножкой, Ұ — с перекладиной. Не путать с русской «У».',
+    methodNote: 'Ү — тік аяқты, Ұ — көлденең сызықшасы бар. Орыс тіліндегі «У» әрпімен шатастырмау керек.',
   },
 };
 
@@ -98,11 +98,11 @@ export const LETTERS: LetterItem[] = KAZAKH_ALPHABET.map((l) => {
   if (!prep) return item;
 
   const p = `l.${l.slug}`;
-  item.nameClip = addClip({ id: `${p}.name`, kind: 'name', text: l.name, ttsAllowed: true, note: `Название буквы ${l.upper}` });
+  item.nameClip = addClip({ id: `${p}.name`, kind: 'name', text: l.name, ttsAllowed: true, note: `${l.upper} әрпінің аты` });
   if (!l.vowel && prep.sound) {
     item.soundClip = addClip({
       id: `${p}.sound`, kind: 'sound', text: prep.sound, ttsAllowed: false,
-      note: `Изолированный звук ${prep.sound}. Только запись носителя языка.`,
+      note: `Жеке дыбыс ${prep.sound}. Тек тіл иесінің жазбасы.`,
     });
   }
   const word: WordExample = {

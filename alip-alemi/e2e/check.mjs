@@ -46,19 +46,19 @@ async function hold(sel) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 async function enterParent() {
-  await hold('[aria-label="Для родителей: удерживайте"]');
-  const q = await page.locator('.gate >> text=/Сколько будет/').textContent();
+  await hold('[aria-label="Ата-аналарға: басып тұрыңыз"]');
+  const q = await page.locator('.gate >> text=/неше болады/').textContent();
   const [, a, b] = q.match(/(\d+) \+ (\d+)/);
   for (const d of String(+a + +b)) await page.locator('.keypad button', { hasText: new RegExp(`^${d}$`) }).click();
   await page.locator('.keypad button', { hasText: 'OK' }).click();
-  await page.locator('text=Кабинет родителя').waitFor();
+  await page.locator('text=Ата-ана кабинеті').waitFor();
 }
 async function addChild(nick, avatarIdx) {
-  await page.locator('.tabs button', { hasText: 'Дети' }).click();
-  await page.locator('text=+ Добавить ребёнка').click();
+  await page.locator('.tabs button', { hasText: 'Балалар' }).click();
+  await page.locator('text=+ Бала қосу').click();
   await page.fill('#nick', nick);
   await page.locator('.avatars button').nth(avatarIdx).click();
-  await page.locator('.modal button', { hasText: 'Сохранить' }).click();
+  await page.locator('.modal button', { hasText: 'Сақтау' }).click();
   await page.locator('.card strong', { hasText: nick }).waitFor();
 }
 async function traceTouch(svgSel) {
@@ -177,16 +177,16 @@ await enterParent();
 await addChild('Айко', 0);
 await addChild('Бота', 1);
 // Загрузка записей носителя для нескольких фраз (как сделает педагог/родитель)
-await page.locator('.tabs button', { hasText: 'Контент и озвучка' }).click();
+await page.locator('.tabs button', { hasText: 'Мазмұн' }).click();
 const clipIds = ['c.hello', 'l.a.intro', 'l.a.name', 'l.a.word', 'l.a.find', 'c.praise1', 'c.praise2', 'c.praise3', 'c.praise4', 'c.praise5'];
 for (const [i, id] of clipIds.entries()) {
   const row = page.locator('table.clips tr', { hasText: id });
   await row.locator('input[type=file]').setInputFiles({ name: `${id}.wav`, mimeType: 'audio/wav', buffer: wav(300 + i * 40) });
   await page.locator('table.clips tr', { hasText: id }).waitFor({ state: 'detached' });
 }
-await page.locator('.seg button', { hasText: 'Все' }).click();
+await page.locator('.seg button', { hasText: 'Барлығы' }).click();
 assert((await page.locator('td.src-recording').count()) === clipIds.length, 'записи диктора загружены и отмечены как «запись носителя»');
-await page.locator('header button', { hasText: 'Выйти' }).click();
+await page.locator('header button', { hasText: 'Шығу' }).click();
 // Первый созданный профиль становится активным.
 await page.locator('[aria-label="Айко"]').waitFor();
 
@@ -224,14 +224,14 @@ log('Числа 2:', n2.map((t) => `${t.type}:${t.item}`).join(' '));
 
 // Прогресс у родителя и изоляция профилей
 await enterParent();
-await page.locator('.tabs button', { hasText: 'Прогресс' }).click();
+await page.locator('.tabs button', { hasText: 'Үлгерім' }).click();
 const learnCells = await page.locator('.sym-cell.learn, .sym-cell.ok').count();
 assert(learnCells >= 3, `у Айко отмечены изучаемые символы (${learnCells})`);
 await page.locator('.seg button', { hasText: 'Бота' }).click();
 await page.waitForTimeout(400);
 assert((await page.locator('.sym-cell.learn, .sym-cell.ok').count()) === 0, 'у Боты прогресс пуст — профили не смешиваются');
 if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/parent.png`, fullPage: true });
-await page.locator('header button', { hasText: 'Выйти' }).click();
+await page.locator('header button', { hasText: 'Шығу' }).click();
 
 // Офлайн
 await page.evaluate(() => navigator.serviceWorker.ready);

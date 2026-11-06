@@ -61,7 +61,7 @@ export function ParentGate({ onPass, onCancel }: { onPass: () => void; onCancel:
   const submit = () => {
     if (Number(val) === q.a + q.b) onPass();
     else {
-      setMsg('Неверно, попробуйте другой пример.');
+      setMsg('Қате. Басқа мысалды шешіп көріңіз.');
       setQ(make());
       setVal('');
     }
@@ -70,8 +70,8 @@ export function ParentGate({ onPass, onCancel }: { onPass: () => void; onCancel:
     <div className="modal-back">
       <div className="modal parent">
         <div className="gate">
-          <strong>Для взрослых</strong>
-          <div>Сколько будет {q.a} + {q.b}?</div>
+          <strong>Ересектерге арналған</strong>
+          <div>{q.a} + {q.b} неше болады?</div>
           <div className="answer">{val || ' '}</div>
           <div className="keypad">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => <button key={d} onClick={() => press(d)}>{d}</button>)}
@@ -80,7 +80,7 @@ export function ParentGate({ onPass, onCancel }: { onPass: () => void; onCancel:
             <button onClick={submit} style={{ background: '#ee8a3c', color: '#fff' }}>OK</button>
           </div>
           {msg && <div className="muted">{msg}</div>}
-          <button className="btn" onClick={onCancel}>Отмена</button>
+          <button className="btn" onClick={onCancel}>Болдырмау</button>
         </div>
       </div>
     </div>
@@ -92,7 +92,7 @@ export function ParentEntry() {
   const [gate, setGate] = useState(false);
   return (
     <>
-      <HoldButton label="Для родителей: удерживайте" onHold={() => { audio.stop(); setGate(true); }}>⚙️</HoldButton>
+      <HoldButton label="Ата-аналарға: басып тұрыңыз" onHold={() => { audio.stop(); setGate(true); }}>⚙️</HoldButton>
       {gate && <ParentGate onPass={() => { setGate(false); app.go({ name: 'parent' }); }} onCancel={() => setGate(false)} />}
     </>
   );
@@ -106,7 +106,7 @@ export function Welcome() {
         <Fox size="big" />
         <h1 style={{ margin: 0, fontSize: 34 }}>Әріп әлемі</h1>
         <p className="muted" style={{ maxWidth: 360, fontSize: 16 }}>
-          Взрослым: удерживайте ⚙️ две секунды, чтобы создать профиль ребёнка.
+          Ересектерге: баланың профилін ашу үшін ⚙️ батырмасын екі секунд басып тұрыңыз.
         </p>
       </div>
     </div>
@@ -155,7 +155,7 @@ export function Home() {
           <span className="avatar">{profile.avatar}</span>
         </button>
         <span className="spacer" />
-        <button className={`icon-btn small ${musicOn ? '' : 'off'}`} aria-label="Музыка" onClick={toggleMusic}>{musicOn ? '🎵' : '🔇'}</button>
+        <button className={`icon-btn small ${musicOn ? '' : 'off'}`} aria-label="Әуен" onClick={toggleMusic}>{musicOn ? '🎵' : '🔇'}</button>
         <ParentEntry />
       </div>
       <div className="home-hero">
