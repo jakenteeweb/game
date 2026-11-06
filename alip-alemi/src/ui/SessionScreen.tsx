@@ -13,6 +13,7 @@ import { BalloonsTask } from '../tasks/BalloonsTask';
 import { BasketTask, ChooseGroupTask, CountTask } from '../tasks/NumberTasks';
 import { Mascot } from './Mascot';
 import { nextRewards } from './garden';
+import { giveStars } from './LevelToast';
 
 type Phase = 'greet' | 'task' | 'end';
 
@@ -45,7 +46,7 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
       progress.current = await db.progressFor(profile.id);
       const p = planSession({
         track, progress: progress.current, sessionIndex, now, length: profile.length,
-        rng: Math.random, canHear: app.canHear, isAvailable: app.isAvailable,
+        rng: Math.random, canHear: app.canHear, isAvailable: app.isAvailable, maxNew: profile.age >= 6 ? 2 : 1,
       });
       log.current = { id: newId('s'), profileId: profile.id, track, index: sessionIndex, startedAt: now, tasksDone: 0, newItemId: p.newItemId, reviewOnly: p.reviewOnly };
       await db.putSession(log.current);
@@ -97,7 +98,9 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
     audio.stop();
     // Награда — за участие и старание, а не за безошибочность.
     const got = done.current > 0 ? nextRewards(profile.garden, 1 + (effort.current ? 1 : 0)) : [];
-    const updated = { ...profile, garden: [...profile.garden, ...got] };
+    // Звёзды могли прибавиться за время занятия — берём свежую запись.
+    const fresh = (await db.getProfile(profile.id)) ?? profile;
+    const updated = { ...profile, stars: fresh.stars, garden: [...profile.garden, ...got] };
     profileRef.current = updated;
     await db.putProfile(updated);
     if (log.current) await db.putSession({ ...log.current, endedAt: Date.now(), tasksDone: done.current });
@@ -130,6 +133,8 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
 
     if (!isExposure(task.showAs)) {
       setPraise((x) => x + 1);
+      // Звезда — за самостоятельный правильный ответ. За ошибки ничего не отнимаем.
+      if (isIndependent(outcome)) void giveStars(profileRef.current!.id, 1, app.refresh);
       const clip = isIndependent(outcome) || Math.random() < 0.5 ? PRAISE[Math.floor(Math.random() * PRAISE.length)] : 'c.effort';
       await audio.play([clip]);
     }

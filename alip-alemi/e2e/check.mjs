@@ -183,14 +183,15 @@ await addChild('Айко', 0);
 await addChild('Бота', 1);
 // Загрузка записей носителя для нескольких фраз (как сделает педагог/родитель)
 await page.locator('.tabs button', { hasText: 'Мазмұн' }).click();
-const clipIds = ['c.hello', 'l.a.intro', 'l.a.name', 'l.a.word', 'l.a.find', 'c.praise1', 'c.praise2', 'c.praise3', 'c.praise4', 'c.praise5'];
+const clipIds = ['c.hello', 'l.a.intro', 'c.listen', 'l.a.word', 'l.a.find', 'c.praise1', 'c.praise2', 'c.praise3', 'c.praise4', 'c.praise5'];
 for (const [i, id] of clipIds.entries()) {
   const row = page.locator('table.clips tr', { hasText: id });
   await row.locator('input[type=file]').setInputFiles({ name: `${id}.wav`, mimeType: 'audio/wav', buffer: wav(300 + i * 40) });
   await page.locator('table.clips tr', { hasText: id }).waitFor({ state: 'detached' });
 }
 await page.locator('.seg button', { hasText: 'Барлығы' }).click();
-assert((await page.locator('td.src-recording').count()) === clipIds.length, 'записи диктора загружены и отмечены как «запись носителя»');
+for (const id of clipIds) if (!(await page.locator('table.clips tr', { hasText: id }).first().locator('td.src-recording').count())) throw new Error('не отмечена запись ' + id);
+assert((await page.locator('td.src-recording').count()) >= clipIds.length + 22, 'записи диктора загружены и отмечены как «запись носителя» (плюс 22 живые записи букв)');
 await page.locator('header button', { hasText: 'Шығу' }).click();
 // Первый созданный профиль становится активным.
 await page.locator('[aria-label="Айко"]').waitFor();
@@ -227,12 +228,15 @@ assert(n1.some((t) => t.type === 'numIntro'), 'знакомство с числ�
 const n2 = await playSession('numbers');
 log('Числа 2:', n2.map((t) => `${t.type}:${t.item}`).join(' '));
 
-// «Ойнап үйрен»: все три игры проходятся до конца
-await page.locator('[aria-label="Ойнап үйрен"]').click();
-for (const game of ['memory', 'feed', 'pop']) {
+// «Ойындар»: все игры открыты и проходятся до конца, за победы — звёзды
+const starsOf = async () => parseInt(await page.locator('.stars-pill').getAttribute('aria-label'), 10);
+const starsBefore = await starsOf();
+await page.locator('[aria-label="Ойындар"]').click();
+assert((await page.locator('.game-card.locked').count()) === 0 && (await page.locator('.game-card').count()) === 7, 'все 7 игр открыты');
+for (const game of ['syl', 'word', 'math', 'dict', 'memory', 'feed', 'pop']) {
   await page.locator(`[data-game="${game}"]`).click();
   const end = page.locator('[aria-label="Ойындар"]');
-  for (let guard = 0; guard < 40 && !(await end.count()); guard++) {
+  for (let guard = 0; guard < 60 && !(await end.count()); guard++) {
     await page.waitForTimeout(700);
     if (game === 'memory') {
       const cards = page.locator('.mem-card:not(.done)');
@@ -246,18 +250,49 @@ for (const game of ['memory', 'feed', 'pop']) {
       if (!goal) continue;
       for (let k = 0; k < +goal; k++) { await page.locator('.pile button').first().click(); await page.waitForTimeout(250); }
       await page.waitForTimeout(2500);
-    } else {
+    } else if (game === 'pop') {
       const target = await page.locator('.sky').getAttribute('data-target').catch(() => null);
       if (!target) continue;
       const bs = page.locator(`.balloon[data-opt="${target}"]:not(.popped)`);
       while (await bs.count()) { await bs.first().click({ force: true }); await page.waitForTimeout(300); }
       await page.waitForTimeout(1500);
+    } else if (await page.locator('.choices[data-answer]').count()) {
+      const ans = await page.locator('.choices[data-answer]').getAttribute('data-answer');
+      const opts = page.locator('.choices .choice');
+      // Одна ошибка в каждом задании «Есеп» — проверяем, что игра не ломается.
+      if (game === 'math') {
+        const wrong = page.locator(`.choices .choice:not([data-opt="${ans}"])`);
+        if (await wrong.count()) { await wrong.first().click(); await page.waitForTimeout(600); }
+      }
+      await page.locator(`.choices [data-opt="${ans}"]`).click();
+      void opts;
+      await page.waitForTimeout(2200);
+    } else if (await page.locator('.slots[data-syl]').count()) {
+      const syl = await page.locator('.slots[data-syl]').getAttribute('data-syl');
+      await page.locator(`.tile.cons[data-tile="${syl[0]}"]`).click(); await page.waitForTimeout(500);
+      await page.locator(`.tile.vow[data-tile="${syl[1]}"]`).click();
+      await page.waitForTimeout(2200);
+    } else if (await page.locator('.slots[data-word] ~ .tiles').count()) {
+      const word = (await page.locator('.slots[data-word]').getAttribute('data-word')).toUpperCase();
+      for (const ch of word) { await page.locator(`.tile:not(.used)[data-tile="${ch}"]`).first().click(); await page.waitForTimeout(350); }
+      await page.waitForTimeout(2200);
+    } else if (await page.locator('svg[aria-label="write"]').count()) {
+      const sel = 'svg[aria-label="write"]';
+      const strokes = JSON.parse(await page.locator(sel).getAttribute('data-strokes'));
+      await drawTouch(sel, strokes, 100, ([x, y]) => [x * 0.7 + 12, y * 0.7 + 10]);
+      await page.locator('[aria-label="Дайын"]').click();
+      await page.waitForTimeout(3000);
     }
   }
   assert(await end.count(), `игра «${game}» проходится до конца`);
+  if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/game-${game}-end.png` });
   await end.click();
 }
 await page.locator('[aria-label="Үйге"]').click();
+await page.waitForTimeout(500);
+const starsAfter = await starsOf();
+assert(starsAfter > starsBefore + 20, `за победы в играх начислены звёзды (${starsBefore} → ${starsAfter})`);
+assert(/[2-9]-деңгей/.test(await page.locator('.stars-pill').textContent()), 'вырос уровень');
 
 // Прогресс у родителя и изоляция профилей
 await enterParent();

@@ -18,6 +18,8 @@ export interface Clip {
   ttsAllowed: boolean;
   /** Подсказка диктору/педагогу. */
   note?: string;
+  /** Составная фраза: проигрывается как последовательность других фраз (например, «А» + «әрпін тап»). */
+  parts?: string[];
 }
 
 export type Point = [number, number];
@@ -33,6 +35,8 @@ export interface WordExample {
   picture: string;
   /** Иллюстрация (сгенерирована в Higgsfield), эмодзи — запасной вариант. */
   image?: string;
+  /** Буква стоит в начале слова (для «Қай сөз … әрпінен басталады?»). */
+  initial?: boolean;
   clipId: string;
 }
 

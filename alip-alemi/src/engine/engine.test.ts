@@ -45,9 +45,10 @@ describe('варианты ответа', () => {
           expect(t.options.length).toBeGreaterThanOrEqual(3);
         } else if (t.options.length) {
           expect(t.options).toContain(t.itemId);
-          for (const o of t.options) {
-            if (!o.startsWith('shape:') && !o.startsWith('pic:')) expect(known.has(o), `${o} незнаком в задании ${t.showAs}`).toBe(true);
-          }
+          // Только буквы (или цифры) того же раздела — без картинок и фигур; без повторов (кроме шаров).
+          for (const o of t.options) expect(ITEMS[o]?.track, `${o} в задании ${t.showAs}`).toBe(ITEMS[t.itemId].track);
+          if (t.showAs !== 'balloons') expect(new Set(t.options).size).toBe(t.options.length);
+          void known;
           if (ITEMS[t.itemId].track === 'letters' && t.reason !== 'retry' && t.showAs !== 'balloons') expect(t.options.length).toBeGreaterThanOrEqual(3);
         }
         seenTypes.add(t.showAs);
@@ -57,12 +58,13 @@ describe('варианты ответа', () => {
     expect(seenTypes.has('wordMatch'), [...seenTypes].join(',')).toBe(true);
   });
 
-  it('первая буква: остальные варианты — картинки, а не незнакомые буквы', () => {
-    const opts = buildOptions(ITEMS.L_a, [], 3, mulberry32(1));
-    expect(opts).toContain('L_a');
-    expect(opts.filter((o) => o.startsWith('pic:'))).toHaveLength(2);
-    expect(opts).not.toContain('pic:apple'); // картинка самого слова-примера не подсказывает ответ
+  it('варианты — буквы всего алфавита, и среди них похожие', () => {
+    const opts = buildOptions(ITEMS.L_n, [], 4, mulberry32(1));
+    expect(opts).toContain('L_n');
+    expect(opts.every((o) => ITEMS[o]?.track === 'letters')).toBe(true);
+    expect(opts.some((o) => ['L_ng', 'L_i', 'L_p'].includes(o))).toBe(true); // Ң, И или П
   });
+
 
 });
 

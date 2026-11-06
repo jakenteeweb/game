@@ -18,6 +18,8 @@ class AudioManager {
   private bundled: Record<string, string> = {};
   /** Встроенные записи проверены носителем языка? ИИ-озвучка — нет. */
   private bundledVerified = false;
+  /** Встроенные записи живого голоса (например, буквы, прочитанные ребёнком). */
+  private bundledNative = new Set<string>();
   bundledInfo: { generator?: string; note?: string } = {};
   private kkVoice: SpeechSynthesisVoice | null = null;
   private settings: Pick<Settings, 'speechOn' | 'speechVolume' | 'allowKazakhTts' | 'allowAiVoice'> = { speechOn: true, speechVolume: 1, allowKazakhTts: true, allowAiVoice: true };
@@ -40,6 +42,7 @@ class AudioManager {
         const m = await res.json();
         this.bundled = m.files ?? {};
         this.bundledVerified = m.verified === true;
+        this.bundledNative = new Set<string>(m.native ?? []);
         this.bundledInfo = { generator: m.generator, note: m.note };
       }
     } catch { /* офлайн без манифеста — просто нет встроенных записей */ }
@@ -76,8 +79,14 @@ class AudioManager {
 
   sourceOf(clipId: string): ClipSource {
     if (this.recordings.has(clipId)) return 'recording';
+    const parts = CLIPS[clipId]?.parts;
+    if (parts && !this.bundled[clipId]) {
+      // Составная фраза: звучит, если звучат все её части; источник — «худший» из частей.
+      const order: ClipSource[] = ['none', 'tts', 'ai', 'bundled', 'recording'];
+      return parts.map((p) => this.sourceOf(p)).reduce((a, b) => (order.indexOf(a) <= order.indexOf(b) ? a : b), 'recording' as ClipSource);
+    }
     if (this.bundled[clipId]) {
-      if (this.bundledVerified) return 'bundled';
+      if (this.bundledVerified || this.bundledNative.has(clipId)) return 'bundled';
       if (this.settings.allowAiVoice) return 'ai';
     }
     const clip = CLIPS[clipId];
@@ -137,8 +146,16 @@ class AudioManager {
     return my === this.gen;
   }
 
-  private playOne(clipId: string, my: number): Promise<void> {
+  private async playOne(clipId: string, my: number): Promise<void> {
     const clip = CLIPS[clipId];
+    // Составная фраза без своей записи — проигрываем части подряд (живое название буквы + «әрпін тап»).
+    if (clip?.parts && !this.recordings.has(clipId) && !this.bundled[clipId]) {
+      for (const part of clip.parts) {
+        if (my !== this.gen) return;
+        await this.playOne(part, my);
+      }
+      return;
+    }
     const src = this.sourceOf(clipId);
     const silentMs = Math.max(700, (clip?.text.length ?? 6) * 55);
     if (!this.settings.speechOn || src === 'none') return wait(this.settings.speechOn ? silentMs : 350);

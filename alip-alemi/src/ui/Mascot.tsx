@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { audio } from '../audio/audio';
 
-/** Ботақан — верблюжонок-помощник с книжкой (иллюстрации сгенерированы в Higgsfield). */
+/** Ханшайым — помощница (иллюстрации сгенерированы в Higgsfield по картинке, которую дала семья). */
 const IMAGES = {
-  calm: 'img/botakan.webp',
-  cheer: 'img/botakan-happy.webp',
-  sleep: 'img/botakan-sleep.webp',
+  calm: 'img/hanshaiym.webp',
+  cheer: 'img/hanshaiym-cheer.webp',
+  sleep: 'img/hanshaiym-think.webp',
 };
 
 type Mood = 'calm' | 'cheer' | 'sleep';

@@ -6,6 +6,7 @@ import { Parent } from './ui/Parent';
 import { GameScreen, GamesScreen } from './games/GameScreens';
 import { SessionScreen } from './ui/SessionScreen';
 import { Mascot } from './ui/Mascot';
+import { LevelToast } from './ui/LevelToast';
 
 function Router() {
   const { screen, profile } = useApp();
@@ -37,6 +38,7 @@ export default function App() {
   return (
     <AppProvider>
       <Router />
+      <LevelToast />
     </AppProvider>
   );
 }

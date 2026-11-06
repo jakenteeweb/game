@@ -1,13 +1,14 @@
 import type { Clip, Item, LetterItem, NumberItem, Track } from './types';
 import { LETTERS, LETTER_CLIPS } from './letters';
 import { NUMBERS, NUMBER_CLIPS } from './numbers';
+import { SYLLABLE_CLIPS } from './syllables';
 
 export * from './types';
 export { LETTERS, NUMBERS };
 
-/** Общие фразы помощника Ботақана. Всё — на казахском; статус: черновик. */
+/** Общие фразы помощницы Ханшайым. Всё — на казахском; статус: черновик. */
 const COMMON: Clip[] = [
-  { id: 'c.hello', kind: 'instruction', text: 'Сәлем! Мен Ботақанмын. Бүгін бірге ойнайық!', ttsAllowed: true },
+  { id: 'c.hello', kind: 'instruction', text: 'Сәлем! Мен Ханшайыммын. Бүгін бірге ойнайық!', ttsAllowed: true },
   { id: 'c.review_day', kind: 'instruction', text: 'Бүгін білгенімізді қайталайық.', ttsAllowed: true },
   { id: 'c.new_letter', kind: 'instruction', text: 'Енді жаңа әріппен танысайық!', ttsAllowed: true },
   { id: 'c.new_number', kind: 'instruction', text: 'Енді жаңа санмен танысайық!', ttsAllowed: true },
@@ -42,6 +43,42 @@ const COMMON: Clip[] = [
   { id: 'c.pop', kind: 'instruction', text: 'Мен айтқанды тауып, шарды жар!', ttsAllowed: true },
   { id: 'c.lesson_first', kind: 'instruction', text: 'Алдымен сабақтан өтейік.', ttsAllowed: true },
   { id: 'c.thanks', kind: 'feedback', text: 'Рақмет! Тойдым!', ttsAllowed: true },
+  { id: 'c.games', kind: 'instruction', text: 'Ойындар', ttsAllowed: true },
+  { id: 'c.lesson', kind: 'instruction', text: 'Сабақ', ttsAllowed: true },
+  { id: 'c.level_up', kind: 'feedback', text: 'Жаңа деңгей! Жарайсың!', ttsAllowed: true },
+  { id: 'c.read_word', kind: 'instruction', text: 'Сөзді оқы да, суретін тап.', ttsAllowed: true },
+  { id: 'c.syl_listen', kind: 'instruction', text: 'Тыңда. Қай буын?', ttsAllowed: true },
+  { id: 'c.syl_build', kind: 'instruction', text: 'Буынды құра:', ttsAllowed: true },
+  { id: 'c.build_word', kind: 'instruction', text: 'Сөзді құра:', ttsAllowed: true },
+  { id: 'c.missing_letter', kind: 'instruction', text: 'Қай әріп жетпей тұр?', ttsAllowed: true },
+  { id: 'c.which_more', kind: 'instruction', text: 'Қай сан үлкен?', ttsAllowed: true },
+  { id: 'c.missing_number', kind: 'instruction', text: 'Қай сан жоқ?', ttsAllowed: true },
+  { id: 'c.dictation', kind: 'instruction', text: 'Тыңда да, жаз:', ttsAllowed: true },
+  // Части составных фраз
+  { id: 'p.this_is', kind: 'instruction', text: 'Бұл –', ttsAllowed: true },
+  { id: 'p.letter_dot', kind: 'instruction', text: 'әрпі.', ttsAllowed: true },
+  { id: 'p.in_word', kind: 'instruction', text: 'сөзінде', ttsAllowed: true },
+  { id: 'p.letter_has', kind: 'instruction', text: 'әрпі бар.', ttsAllowed: true },
+  { id: 'p.find', kind: 'instruction', text: 'әрпін тап.', ttsAllowed: true },
+  { id: 'p.balloons', kind: 'instruction', text: 'әрпі жазылған шарларды бас.', ttsAllowed: true },
+  { id: 'p.which_word', kind: 'instruction', text: 'Қай сөз', ttsAllowed: true },
+  { id: 'p.starts', kind: 'instruction', text: 'әрпінен басталады?', ttsAllowed: true },
+  { id: 'p.write', kind: 'instruction', text: 'әрпін жаз.', ttsAllowed: true },
+  { id: 'p.digit_find', kind: 'instruction', text: 'цифрын тап.', ttsAllowed: true },
+  { id: 'p.number_find', kind: 'instruction', text: 'санын тап.', ttsAllowed: true },
+  { id: 'p.digit_write', kind: 'instruction', text: 'цифрын жаз.', ttsAllowed: true },
+  { id: 'p.number_write', kind: 'instruction', text: 'санын жаз.', ttsAllowed: true },
+  { id: 'p.total', kind: 'instruction', text: 'Барлығы –', ttsAllowed: true },
+  { id: 'p.which_pic', kind: 'instruction', text: 'Қай суретте', ttsAllowed: true },
+  { id: 'p.items', kind: 'instruction', text: 'зат бар?', ttsAllowed: true },
+  { id: 'p.basket', kind: 'instruction', text: 'Себетке', ttsAllowed: true },
+  { id: 'p.put', kind: 'instruction', text: 'сал.', ttsAllowed: true },
+  { id: 'p.me', kind: 'instruction', text: 'Маған', ttsAllowed: true },
+  { id: 'p.give', kind: 'instruction', text: 'бер.', ttsAllowed: true },
+  { id: 'p.plus', kind: 'instruction', text: 'қосу', ttsAllowed: true },
+  { id: 'p.minus', kind: 'instruction', text: 'алу', ttsAllowed: true },
+  { id: 'p.equals', kind: 'instruction', text: 'неше болады?', ttsAllowed: true },
+  ...SYLLABLE_CLIPS,
 ];
 
 export const CLIPS: Record<string, Clip> = Object.fromEntries(

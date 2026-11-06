@@ -1,3 +1,4 @@
+import type { GameId } from './games/games';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { audio, music, setSfx } from './audio/audio';
 import { ITEMS, type Item } from './content';
@@ -11,7 +12,7 @@ export type Screen =
   | { name: 'session'; track: 'letters' | 'numbers'; id: number }
   | { name: 'garden' }
   | { name: 'games' }
-  | { name: 'game'; game: 'memory' | 'feed' | 'pop'; id: number }
+  | { name: 'game'; game: GameId; id: number }
   | { name: 'parent' };
 
 interface AppState {
