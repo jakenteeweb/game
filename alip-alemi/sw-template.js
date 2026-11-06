@@ -2,8 +2,18 @@
 const CACHE = 'alip-alemi-__VERSION__';
 const FILES = __FILES__;
 
+// Установка обновления: код приложения обязателен, остальные файлы — «по возможности».
+// Раньше один недоступный файл срывал всю установку, и телефоны застревали на старой версии.
+const CORE = FILES.filter((f) => f === './' || f === 'index.html' || f.startsWith('assets/'));
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(async (c) => {
+        await c.addAll(CORE);
+        await Promise.allSettled(FILES.filter((f) => !CORE.includes(f)).map((f) => c.add(f)));
+      })
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (e) => {
