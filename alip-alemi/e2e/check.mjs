@@ -191,7 +191,7 @@ for (const [i, id] of clipIds.entries()) {
 }
 await page.locator('.seg button', { hasText: 'Барлығы' }).click();
 for (const id of clipIds) if (!(await page.locator('table.clips tr', { hasText: id }).first().locator('td.src-recording').count())) throw new Error('не отмечена запись ' + id);
-assert((await page.locator('td.src-recording').count()) >= clipIds.length + 22, 'записи диктора загружены и отмечены как «запись носителя» (плюс 22 живые записи букв)');
+assert((await page.locator('td.src-recording').count()) === clipIds.length, 'записи диктора загружены и отмечены как «запись носителя»');
 await page.locator('header button', { hasText: 'Шығу' }).click();
 // Первый созданный профиль становится активным.
 await page.locator('[aria-label="Айко"]').waitFor();
