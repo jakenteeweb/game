@@ -3,7 +3,7 @@
   "short_name": "Рудные земли",
   "lang": "ru",
   "start_url": "./index.html",
-  "scope": "./",
+  "scope": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#1c2430",

@@ -1,4 +1,4 @@
-const CACHE = 'rudnye-zemli-v3';
+const CACHE = 'rudnye-zemli-v4';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
