@@ -277,7 +277,15 @@ function SoundTab() {
         <label className="row-wrap">Громкость <input type="range" min={0} max={1} step={0.1} value={s.musicVolume} onChange={(e) => void app.saveSettings({ musicVolume: Number(e.target.value) })} /></label>
       </div>
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Синтез речи</h3>
+        <h3 style={{ marginTop: 0 }}>ИИ-озвучка</h3>
+        <label className="row-wrap">
+          <input type="checkbox" checked={s.allowAiVoice} onChange={(e) => void app.saveSettings({ allowAiVoice: e.target.checked })} />
+          Использовать встроенную ИИ-озвучку, пока нет записей носителя
+        </label>
+        <p className="muted">Фразы сгенерированы нейросетью (Higgsfield, ElevenLabs) и работают без интернета. Произношение не проверено носителем казахского языка. Отдельные звуки согласных ([н], [т], [қ]) ИИ не озвучивает — их нужно записать диктору.</p>
+      </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Синтез речи устройства</h3>
         <p>Казахский голос на этом устройстве: {audio.hasKazakhVoice() ? <b>найден — {audio.kazakhVoiceName()}</b> : <b>не найден</b>}.</p>
         <label className="row-wrap">
           <input type="checkbox" checked={s.allowKazakhTts} onChange={(e) => void app.saveSettings({ allowKazakhTts: e.target.checked })} />
@@ -308,8 +316,9 @@ function ContentTab() {
   return (
     <>
       <div className={`banner ${counts.recording || counts.bundled ? 'info' : 'warn'}`}>
-        <b>Статус озвучки.</b> Записи носителя: {(counts.recording ?? 0) + (counts.bundled ?? 0)} из {clips.length}. Синтез (не проверен): {counts.tts ?? 0}. Без звука: {counts.none ?? 0}.
-        {!counts.recording && !counts.bundled && ' Проверенной казахской озвучки пока нет — загрузите записи носителя языка ниже.'}
+        <b>Статус озвучки.</b> Записи носителя: {(counts.recording ?? 0) + (counts.bundled ?? 0)} из {clips.length}. ИИ-озвучка (не проверена): {counts.ai ?? 0}. Синтез устройства: {counts.tts ?? 0}. Без звука: {counts.none ?? 0}.
+        {!counts.recording && !counts.bundled && ' Проверенной записи носителя пока нет — загрузите записи ниже, они заменят ИИ-озвучку.'}
+        {audio.bundledInfo.generator && <div className="muted">Встроенная ИИ-озвучка: {audio.bundledInfo.generator}. {audio.bundledInfo.note}</div>}
       </div>
       <div className="banner warn">
         <b>Все учебные тексты имеют статус «черновик»</b> и требуют проверки казахоязычным педагогом. Неподготовленные уроки ({stubs.length}: {stubs.slice(0, 10).map(glyph).join(' ')}…) детям не показываются.
@@ -360,7 +369,7 @@ function ContentTab() {
 }
 
 const KIND_LABEL: Record<Clip['kind'], string> = { name: 'название', sound: 'звук', word: 'слово', instruction: 'инструкция', feedback: 'обратная связь' };
-const SOURCE_LABEL = { recording: 'запись носителя', bundled: 'запись (встроенная)', tts: 'синтез — не проверено', none: 'нет озвучки' };
+const SOURCE_LABEL = { recording: 'запись носителя', bundled: 'запись (встроенная, проверена)', ai: 'ИИ-озвучка — не проверено', tts: 'синтез устройства — не проверено', none: 'нет озвучки' };
 
 function ClipRow({ clip }: { clip: Clip }) {
   const src = audio.sourceOf(clip.id);
@@ -376,7 +385,7 @@ function ClipRow({ clip }: { clip: Clip }) {
         <div className="muted" style={{ fontSize: 12 }}>{clip.id}{clip.note ? ` · ${clip.note}` : ''}</div>
       </td>
       <td>{KIND_LABEL[clip.kind]}</td>
-      <td className={`src-${src === 'bundled' ? 'recording' : src}`}>{SOURCE_LABEL[src]}</td>
+      <td className={`src-${src === 'bundled' ? 'recording' : src === 'ai' ? 'tts' : src}`}>{SOURCE_LABEL[src]}</td>
       <td>
         <div className="row-wrap">
           <button className="btn" disabled={src === 'none'} onClick={() => void audio.play([clip.id])}>▶</button>

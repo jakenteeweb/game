@@ -31,6 +31,8 @@ export interface WordExample {
   word: string;
   /** Картинка (эмодзи) — должна однозначно изображать слово. */
   picture: string;
+  /** Иллюстрация (сгенерирована в Higgsfield), эмодзи — запасной вариант. */
+  image?: string;
   clipId: string;
 }
 

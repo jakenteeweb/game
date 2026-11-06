@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { audio, chime } from '../audio/audio';
 import type { LetterItem } from '../content';
 import { mulberry32, shuffle } from '../engine/rng';
+import { Pic } from './objects';
 import { SpeakerButton, itemOf, optionLabel, retryClip, useInstruction, useTapGuard, type TaskProps } from './common';
 
 const COLORS = ['#e67a8f', '#7cbf7a', '#5aa9cf', '#f2a65a', '#b9a6e6', '#e8b84a'];
@@ -68,7 +69,7 @@ export function BalloonsTask({ spec, onDone, setReplay }: TaskProps) {
     <div className="stage">
       <div className="prompt-row">
         <SpeakerButton steps={steps} big />
-        {item.words[0] && <span className="picture-card" aria-hidden="true">{item.words[0].picture}</span>}
+        {item.words[0] && <span className="picture-card" aria-hidden="true"><Pic obj={item.words[0]} size={72} /></span>}
       </div>
       <div className="sky">
         {spec.options.map((opt, i) => {

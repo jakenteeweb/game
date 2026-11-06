@@ -24,7 +24,7 @@ export interface TaskSpec {
   /** Количества групп в «выбери группу». */
   groups?: number[];
   /** Предмет (эмодзи) и слово для числовых заданий. */
-  object?: { word: string; picture: string };
+  object?: { word: string; picture: string; image?: string };
   /** Сколько предметов доступно для корзины. */
   pool?: number;
   seed: number;

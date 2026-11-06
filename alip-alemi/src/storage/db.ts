@@ -45,6 +45,8 @@ export interface Settings {
   musicVolume: number;
   /** Использовать синтез речи с казахским голосом, если записи нет (помечается как непроверенный). */
   allowKazakhTts: boolean;
+  /** Использовать встроенную ИИ-озвучку (Higgsfield), пока нет записей носителя. */
+  allowAiVoice: boolean;
   /** Показывать детям уроки со статусом «черновик» (ещё не проверены педагогом). */
   showDrafts: boolean;
   activeProfileId?: string;
@@ -71,6 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicOn: false,
   musicVolume: 0.3,
   allowKazakhTts: true,
+  allowAiVoice: true,
   showDrafts: true,
 };
 

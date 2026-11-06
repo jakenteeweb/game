@@ -3,7 +3,7 @@ import { audio, type Step } from '../audio/audio';
 import { NUMBER_WORDS } from '../content/numbers';
 import type { LetterItem, NumberItem } from '../content';
 import { itemOf, type TaskProps } from './common';
-import { layout } from './objects';
+import { Pic, layout } from './objects';
 
 /** Этап 1. Знакомство: большая и строчная буква, название, звук, слово с картинкой. */
 export function LetterIntro({ spec, onDone, setReplay }: TaskProps) {
@@ -36,7 +36,7 @@ export function LetterIntro({ spec, onDone, setReplay }: TaskProps) {
       </div>
       {word && (
         <button className="picture-card" onClick={() => void audio.play([word.clipId])} aria-label={word.word}>
-          <div>{word.picture}</div>
+          <div style={{ display: 'grid', placeItems: 'center' }}><Pic obj={word} size={120} /></div>
           <div className="word">{highlight(word.word, item)}</div>
         </button>
       )}
@@ -98,8 +98,8 @@ export function NumberIntro({ spec, onDone, setReplay }: TaskProps) {
       </button>
       <div className="field">
         {pos.map((p, i) => (
-          <span key={i} className={`obj ${lit === i + 1 ? 'flash' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: p.size }}>
-            {spec.object?.picture}
+          <span key={i} className={`obj ${lit === i + 1 ? 'flash' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%` }}>
+            <Pic obj={spec.object} size={p.size} />
             {lit > i && <span className="num">{i + 1}</span>}
           </span>
         ))}

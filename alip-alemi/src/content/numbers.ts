@@ -9,19 +9,19 @@ export const NUMBER_WORDS = [
 
 /** Предметы для счёта: одно слово — одна однозначная картинка. */
 export const COUNT_OBJECTS = [
-  { word: 'алма', picture: '🍎' },
-  { word: 'жұлдыз', picture: '⭐' },
-  { word: 'балық', picture: '🐟' },
-  { word: 'гүл', picture: '🌼' },
-  { word: 'қоңыз', picture: '🐞' },
-  { word: 'шар', picture: '🎈' },
+  { word: 'алма', picture: '🍎', image: 'img/apple.webp' },
+  { word: 'жұлдыз', picture: '⭐', image: 'img/star.webp' },
+  { word: 'балық', picture: '🐟', image: 'img/fish.webp' },
+  { word: 'гүл', picture: '🌼', image: 'img/flower.webp' },
+  { word: 'қоңыз', picture: '🐞', image: 'img/ladybug.webp' },
+  { word: 'шар', picture: '🎈', image: 'img/balloon.webp' },
 ];
 
 /** Предметы, которые кладём в корзину. */
 export const BASKET_OBJECTS = [
-  { word: 'алма', picture: '🍎' },
-  { word: 'алмұрт', picture: '🍐' },
-  { word: 'сәбіз', picture: '🥕' },
+  { word: 'алма', picture: '🍎', image: 'img/apple.webp' },
+  { word: 'алмұрт', picture: '🍐', image: 'img/pear.webp' },
+  { word: 'сәбіз', picture: '🥕', image: 'img/carrot.webp' },
 ];
 
 const READY = new Set([1, 2, 3, 4, 5]);

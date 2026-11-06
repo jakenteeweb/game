@@ -55,20 +55,20 @@ export const KAZAKH_ALPHABET: { upper: string; lower: string; slug: string; name
  * Подготовленные уроки первой версии. Слова — простые и знакомые детям,
  * картинки однозначные. Все тексты имеют статус «черновик» до проверки педагогом.
  */
-const PREPARED: Record<string, { word: string; picture: string; sentence: string; sound?: string; confusable?: string[]; methodNote?: string }> = {
-  'А': { word: 'алма', picture: '🍎', sentence: 'Алма. Алма сөзінде А әрпі бар.' },
-  'Н': { word: 'нан', picture: '🍞', sentence: 'Нан. Нан сөзінде Н әрпі бар.', sound: '[н]', confusable: ['Ң', 'И'] },
-  'Т': { word: 'түлкі', picture: '🦊', sentence: 'Түлкі. Түлкі сөзінде Т әрпі бар.', sound: '[т]' },
+const PREPARED: Record<string, { word: string; picture: string; image?: string; sentence: string; sound?: string; confusable?: string[]; methodNote?: string }> = {
+  'А': { word: 'алма', image: 'img/apple.webp', picture: '🍎', sentence: 'Алма. Алма сөзінде А әрпі бар.' },
+  'Н': { word: 'нан', image: 'img/bread.webp', picture: '🍞', sentence: 'Нан. Нан сөзінде Н әрпі бар.', sound: '[н]', confusable: ['Ң', 'И'] },
+  'Т': { word: 'түлкі', image: 'img/fox.webp', picture: '🦊', sentence: 'Түлкі. Түлкі сөзінде Т әрпі бар.', sound: '[т]' },
   'Ә': {
-    word: 'әтеш', picture: '🐓', sentence: 'Әтеш. Әтеш сөзінде Ә әрпі бар.', confusable: ['А', 'Э'],
+    word: 'әтеш', image: 'img/rooster.webp', picture: '🐓', sentence: 'Әтеш. Әтеш сөзінде Ә әрпі бар.', confusable: ['А', 'Э'],
     methodNote: 'Специфическая казахская буква. Не сравнивать с русской «Э».',
   },
   'Қ': {
-    word: 'қоян', picture: '🐇', sentence: 'Қоян. Қоян сөзінде Қ әрпі бар.', sound: '[қ]', confusable: ['К'],
+    word: 'қоян', image: 'img/rabbit.webp', picture: '🐇', sentence: 'Қоян. Қоян сөзінде Қ әрпі бар.', sound: '[қ]', confusable: ['К'],
     methodNote: 'Обратить внимание на «хвостик» внизу справа — он отличает Қ от К.',
   },
   'Ү': {
-    word: 'үй', picture: '🏠', sentence: 'Үй. Үй сөзінде Ү әрпі бар.', confusable: ['Ұ', 'У'],
+    word: 'үй', image: 'img/house.webp', picture: '🏠', sentence: 'Үй. Үй сөзінде Ү әрпі бар.', confusable: ['Ұ', 'У'],
     methodNote: 'Ү — с прямой ножкой, Ұ — с перекладиной. Не путать с русской «У».',
   },
 };
@@ -108,6 +108,7 @@ export const LETTERS: LetterItem[] = KAZAKH_ALPHABET.map((l) => {
   const word: WordExample = {
     word: prep.word,
     picture: prep.picture,
+    image: prep.image,
     clipId: addClip({ id: `${p}.word`, kind: 'word', text: prep.sentence, ttsAllowed: true }),
   };
   item.words = [word];

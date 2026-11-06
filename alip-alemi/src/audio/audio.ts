@@ -1,11 +1,12 @@
 // Единый аудиоканал: новая фраза всегда останавливает предыдущую, звук не накладывается.
-// Источники по приоритету: запись носителя (загружена родителем) → запись в составе приложения →
-// синтез речи с казахским голосом (если разрешён; помечается как непроверенный) → без звука.
+// Источники по приоритету: запись носителя (загружена родителем) → проверенная запись в составе приложения →
+// ИИ-озвучка в составе приложения (Higgsfield; помечается как непроверенная) →
+// синтез речи устройства с казахским голосом (тоже непроверенный) → без звука.
 // Русский голос никогда не используется как замена.
 import { CLIPS } from '../content';
 import { db, type Settings } from '../storage/db';
 
-export type ClipSource = 'recording' | 'bundled' | 'tts' | 'none';
+export type ClipSource = 'recording' | 'bundled' | 'ai' | 'tts' | 'none';
 export type Step = string | { pause: number };
 
 type Listener = () => void;
@@ -15,8 +16,11 @@ class AudioManager {
   private el: HTMLAudioElement | null = null;
   private recordings = new Map<string, string>(); // clipId -> objectURL
   private bundled: Record<string, string> = {};
+  /** Встроенные записи проверены носителем языка? ИИ-озвучка — нет. */
+  private bundledVerified = false;
+  bundledInfo: { generator?: string; note?: string } = {};
   private kkVoice: SpeechSynthesisVoice | null = null;
-  private settings: Pick<Settings, 'speechOn' | 'speechVolume' | 'allowKazakhTts'> = { speechOn: true, speechVolume: 1, allowKazakhTts: true };
+  private settings: Pick<Settings, 'speechOn' | 'speechVolume' | 'allowKazakhTts' | 'allowAiVoice'> = { speechOn: true, speechVolume: 1, allowKazakhTts: true, allowAiVoice: true };
   private listeners = new Set<Listener>();
   /** Какая фраза сейчас «звучит» (для визуальной подсказки, даже если звука нет). */
   speaking: string | null = null;
@@ -32,7 +36,12 @@ class AudioManager {
     if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => this.detectVoice());
     try {
       const res = await fetch('audio/kk/manifest.json');
-      if (res.ok) this.bundled = (await res.json()).files ?? {};
+      if (res.ok) {
+        const m = await res.json();
+        this.bundled = m.files ?? {};
+        this.bundledVerified = m.verified === true;
+        this.bundledInfo = { generator: m.generator, note: m.note };
+      }
     } catch { /* офлайн без манифеста — просто нет встроенных записей */ }
     await this.reloadRecordings();
   }
@@ -53,7 +62,7 @@ class AudioManager {
     this.emit();
   }
 
-  configure(s: Pick<Settings, 'speechOn' | 'speechVolume' | 'allowKazakhTts'>) {
+  configure(s: Pick<Settings, 'speechOn' | 'speechVolume' | 'allowKazakhTts' | 'allowAiVoice'>) {
     this.settings = s;
     this.emit();
   }
@@ -67,7 +76,10 @@ class AudioManager {
 
   sourceOf(clipId: string): ClipSource {
     if (this.recordings.has(clipId)) return 'recording';
-    if (this.bundled[clipId]) return 'bundled';
+    if (this.bundled[clipId]) {
+      if (this.bundledVerified) return 'bundled';
+      if (this.settings.allowAiVoice) return 'ai';
+    }
     const clip = CLIPS[clipId];
     if (clip?.ttsAllowed && this.kkVoice && this.settings.allowKazakhTts) return 'tts';
     return 'none';
@@ -131,7 +143,7 @@ class AudioManager {
     const silentMs = Math.max(700, (clip?.text.length ?? 6) * 55);
     if (!this.settings.speechOn || src === 'none') return wait(this.settings.speechOn ? silentMs : 350);
 
-    if (src === 'recording' || src === 'bundled') {
+    if (src === 'recording' || src === 'bundled' || src === 'ai') {
       const url = src === 'recording' ? this.recordings.get(clipId)! : `audio/kk/${this.bundled[clipId]}`;
       return new Promise((resolve) => {
         const el = new Audio(url);

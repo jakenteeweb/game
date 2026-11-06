@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { audio, chime } from '../audio/audio';
 import type { NumberItem } from '../content';
 import { mulberry32 } from '../engine/rng';
-import { GroupPicture, layout } from './objects';
+import { GroupPicture, Pic, layout } from './objects';
 import { SpeakerButton, itemOf, retryClip, useInstruction, useTapGuard, type TaskProps } from './common';
 
 /**
@@ -40,8 +40,8 @@ export function CountTask({ spec, onDone, setReplay }: TaskProps) {
         {pos.map((p, i) => {
           const k = order.indexOf(i);
           return (
-            <button key={i} className={`obj ${k >= 0 ? 'counted flash' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: p.size }} onClick={() => tap(i)} aria-label={spec.object?.word}>
-              {spec.object?.picture}
+            <button key={i} className={`obj ${k >= 0 ? 'counted flash' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%` }} onClick={() => tap(i)} aria-label={spec.object?.word}>
+              <Pic obj={spec.object} size={p.size} />
               {k >= 0 && <span className="ring" />}
               {k >= 0 && <span className="num">{k + 1}</span>}
             </button>
@@ -105,15 +105,15 @@ export function BasketTask({ spec, onDone, setReplay }: TaskProps) {
       <div className="basket-area">
         <div className="pile">
           {outside.map((i) => (
-            <button key={i} onClick={() => toggle(i)} aria-label={object.word}>{object.picture}</button>
+            <button key={i} onClick={() => toggle(i)} aria-label={object.word}><Pic obj={object} size={60} /></button>
           ))}
         </div>
-        <div className="basket" aria-label="себет">
+        <div className="basket" aria-label="себет" style={{ backgroundImage: 'url(img/basket.webp)' }}>
           {inBasket.map((i, k) => (
-            <button key={i} className={hint && k >= n ? 'extra' : ''} onClick={() => toggle(i)} aria-label={object.word}>{object.picture}</button>
+            <button key={i} className={hint && k >= n ? 'extra' : ''} onClick={() => toggle(i)} aria-label={object.word}><Pic obj={object} size={46} /></button>
           ))}
           {hint && inBasket.length < n && [...Array(n - inBasket.length)].map((_, k) => (
-            <span key={`h${k}`} style={{ fontSize: 50, opacity: 0.25 }} aria-hidden="true">{object.picture}</span>
+            <span key={`h${k}`} style={{ opacity: 0.25 }} aria-hidden="true"><Pic obj={object} size={46} /></span>
           ))}
         </div>
         <button className="done-btn" onClick={check} aria-label="Дайын">✓</button>
@@ -178,7 +178,7 @@ export function ChooseGroupTask({ spec, onDone, setReplay }: TaskProps) {
             onClick={() => tap(i)}
             aria-label={`${g}`}
           >
-            <GroupPicture count={g} picture={spec.object?.picture ?? '🍎'} seed={seeds[i]} base={sizes[i]} />
+            <GroupPicture count={g} obj={spec.object} seed={seeds[i]} base={sizes[i]} />
           </button>
         ))}
       </div>

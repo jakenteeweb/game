@@ -1,6 +1,6 @@
 import { audio, type Step } from '../audio/audio';
 import type { LetterItem, NumberItem } from '../content';
-import { GroupPicture } from './objects';
+import { GroupPicture, Pic } from './objects';
 import { SpeakerButton, itemOf, optionLabel, useChoice, useInstruction, type TaskProps } from './common';
 
 /**
@@ -38,13 +38,13 @@ export function ChoiceTask({ spec, onDone, setReplay }: TaskProps) {
         <SpeakerButton steps={steps} big />
         {item.track === 'letters' && mode !== 'listen' && (item as LetterItem).words[0] && (
           <button className="picture-card" onClick={() => void audio.play([(item as LetterItem).words[0].clipId])} aria-label="сурет">
-            {(item as LetterItem).words[0].picture}
+            <Pic obj={(item as LetterItem).words[0]} size={72} />
           </button>
         )}
       </div>
       {showGroup && item.track === 'numbers' && (
         <div className="group-card" style={{ width: 'min(60vw, 260px)', aspectRatio: '4 / 3' }}>
-          <GroupPicture count={(item as NumberItem).value} picture={spec.object?.picture ?? '🍎'} seed={spec.seed} base={44} />
+          <GroupPicture count={(item as NumberItem).value} obj={spec.object} seed={spec.seed} base={44} />
         </div>
       )}
       <div className={`choices n${n}`}>

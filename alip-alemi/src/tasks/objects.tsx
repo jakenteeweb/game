@@ -37,13 +37,22 @@ export function layout(n: number, seed: number, opts: { base?: number; aspect?: 
   return out;
 }
 
-export function GroupPicture({ count, picture, seed, base = 46 }: { count: number; picture: string; seed: number; base?: number }) {
+/** Картинка предмета: иллюстрация, а если её нет — эмодзи. */
+export function Pic({ obj, size }: { obj?: { picture: string; image?: string }; size: number }) {
+  if (!obj) return null;
+  if (obj.image) {
+    return <img src={obj.image} alt="" draggable={false} width={size} height={size} style={{ width: size, height: size, objectFit: 'contain', display: 'block', pointerEvents: 'none' }} />;
+  }
+  return <span style={{ fontSize: size * 0.9, lineHeight: 1, display: 'block' }}>{obj.picture}</span>;
+}
+
+export function GroupPicture({ count, obj, seed, base = 46 }: { count: number; obj?: { picture: string; image?: string }; seed: number; base?: number }) {
   const pos = layout(count, seed, { base, aspect: 3 / 4 });
   return (
     <>
       {pos.map((p, i) => (
-        <span key={i} className="obj" style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: p.size }} aria-hidden="true">
-          {picture}
+        <span key={i} className="obj" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden="true">
+          <Pic obj={obj} size={p.size} />
         </span>
       ))}
     </>
