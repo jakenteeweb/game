@@ -177,7 +177,7 @@ function TaskView(props: { spec: TaskSpec; onDone: (o: Outcome) => void; setRepl
   switch (props.spec.showAs) {
     case 'intro': return <LetterIntro {...props} />;
     case 'numIntro': return <NumberIntro {...props} />;
-    case 'recognize': case 'listen': case 'findDigit': case 'matchDigit': return <ChoiceTask {...props} />;
+    case 'recognize': case 'listen': case 'findDigit': case 'matchDigit': case 'wordMatch': return <ChoiceTask {...props} />;
     case 'trace': return <TraceTask {...props} />;
     case 'write': return <WriteTask {...props} />;
     case 'balloons': return <BalloonsTask {...props} />;

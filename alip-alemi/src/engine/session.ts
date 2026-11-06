@@ -1,6 +1,7 @@
 // Построение занятия. Чистая логика: на вход — прогресс, на выход — список заданий.
 import { CURRICULUM, RULES, type SessionLength, type TaskType } from '../content/curriculum';
 import { ITEMS, SHAPES, glyph, itemsOf, isLetter } from '../content';
+import { PICTURES, PICTURE_BY_ID } from '../content/pictures';
 import { BASKET_OBJECTS as BASKET_OBJECTS_REF, COUNT_OBJECTS as COUNT_OBJECTS_REF } from '../content/numbers';
 import type { Item, Track } from '../content/types';
 import { choiceCount, isDue, isExposure, isStruggling, overdueScore, type ItemProgress, type Outcome } from './progress';
@@ -82,9 +83,35 @@ export function buildOptions(target: Item, known: Item[], n: number, rng: Rng): 
   const confusable = others.filter((k) => target.confusable?.includes(glyph(k)));
   const rest = shuffle(others.filter((k) => !confusable.includes(k)), rng);
   const picked = [...shuffle(confusable, rng), ...rest].slice(0, n - 1).map((i) => i.id);
-  const shapes = shuffle(SHAPES, rng);
-  while (picked.length < n - 1) picked.push(`shape:${shapes[picked.length % shapes.length]}`);
+  // Для букв недостающие варианты — картинки (ребёнок отличает букву от предмета), для цифр — фигуры.
+  const fillers = target.track === 'letters'
+    ? shuffle(PICTURES.filter((p) => p.id !== letterPictureId(target)), rng).map((p) => `pic:${p.id}`)
+    : shuffle(SHAPES, rng).map((s) => `shape:${s}`);
+  for (let i = 0; picked.length < n - 1; i++) picked.push(fillers[i % fillers.length]);
   return shuffle([target.id, ...picked], rng);
+}
+
+/** id картинки слова-примера буквы (её не показываем среди лишних вариантов). */
+function letterPictureId(item: Item): string | undefined {
+  if (item.track !== 'letters') return undefined;
+  const w = item.words[0]?.word;
+  return PICTURES.find((p) => p.word === w)?.id;
+}
+
+/**
+ * «Қай сөз А әрпінен басталады?» — правильная картинка: слово-пример буквы.
+ * Остальные — слова знакомых букв и предметы, которые начинаются на другие буквы (ответ всегда один).
+ */
+export function buildWordOptions(target: Item, known: Item[], n: number, rng: Rng): string[] {
+  if (target.track !== 'letters') return [];
+  const letter = target.upper;
+  const knownWords = known
+    .filter((k) => k.id !== target.id && k.track === 'letters' && k.words[0])
+    .map((k) => letterPictureId(k))
+    .filter((id): id is string => !!id && PICTURE_BY_ID[id].first !== letter);
+  const extra = PICTURES.filter((p) => p.first !== letter && !knownWords.includes(p.id)).map((p) => p.id);
+  const others = [...shuffle(knownWords, rng), ...shuffle(extra, rng)].slice(0, n - 1).map((id) => `pic:${id}`);
+  return shuffle([`pic:${letterPictureId(target)}`, ...others], rng);
 }
 
 /** Шары: 2–3 с нужной буквой и несколько других. */
@@ -120,6 +147,8 @@ function reviewTypes(item: Item, p: ItemProgress, canHear: (i: Item) => boolean)
     if (item.value === 1) types = types.filter((t) => t !== 'basket' || p.stage < 4);
   }
   if (!canHear(item)) types = types.filter((t) => t !== 'listen');
+  // Буква ↔ картинка слова: после того как ребёнок узнаёт букву.
+  if (item.track === 'letters' && p.stage >= 2 && item.words[0]) types = [...types, 'wordMatch'];
   if (types.length === 0) types = item.track === 'letters' ? ['recognize'] : ['chooseGroup'];
   return types;
 }
@@ -132,7 +161,9 @@ export function makeTask(
   const p = progress[item.id];
   const known = knownItems(item.track, progress);
   const showAs = resolveShowAs(type, item, rng, input.canHear);
-  const n = Math.min(opts.maxChoices ?? 4, choiceCount(p));
+  // Для букв всегда не меньше трёх вариантов (после ошибок при повторе — два).
+  const minChoices = item.track === 'letters' && !opts.maxChoices ? 3 : 2;
+  const n = Math.min(opts.maxChoices ?? 4, Math.max(minChoices, choiceCount(p)));
   const spec: TaskSpec = { uid: uid(), type, showAs, itemId: item.id, track: item.track, reason, options: [], seed: Math.floor(rng() * 1e9) };
   if (item.track === 'numbers') {
     const value = item.value;
@@ -149,6 +180,7 @@ export function makeTask(
     }
   }
   if (showAs === 'balloons') spec.options = buildBalloons(item, known, rng, (p?.skills.practice.independent ?? 0) > 0 ? 3 : 2);
+  else if (showAs === 'wordMatch') spec.options = buildWordOptions(item, known, n, rng);
   else if (['recognize', 'listen', 'findDigit', 'matchDigit'].includes(showAs)) spec.options = buildOptions(item, known, n, rng);
   return spec;
 }
@@ -269,7 +301,7 @@ export function planSession(input: PlanInput): SessionPlan {
 /** Более простое задание того же символа после ошибки. */
 export function easierType(t: TaskType): TaskType {
   switch (t) {
-    case 'listen': case 'balloons': case 'check': return 'recognize';
+    case 'listen': case 'balloons': case 'check': case 'wordMatch': return 'recognize';
     case 'trace': case 'write': return 'trace';
     case 'matchDigit': case 'basket': case 'chooseGroup': return 'count';
     case 'findDigit': return 'findDigit';

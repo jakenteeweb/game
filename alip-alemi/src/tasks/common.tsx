@@ -5,6 +5,8 @@ import { RULES } from '../content/curriculum';
 import type { Outcome } from '../engine/progress';
 import type { TaskSpec } from '../engine/session';
 import { useSpeaking } from '../ui/Mascot';
+import { PICTURE_BY_ID, type Picture } from '../content/pictures';
+import { Pic } from './objects';
 
 export interface TaskProps {
   spec: TaskSpec;
@@ -15,9 +17,19 @@ export interface TaskProps {
 
 export const itemOf = (spec: TaskSpec): Item => ITEMS[spec.itemId];
 
-export function optionLabel(opt: string): { text: string; shape: boolean } {
+export function optionLabel(opt: string): { text: string; shape: boolean; pic?: Picture } {
   if (opt.startsWith('shape:')) return { text: opt.slice(6), shape: true };
+  if (opt.startsWith('pic:')) {
+    const pic = PICTURE_BY_ID[opt.slice(4)];
+    return { text: pic.word, shape: false, pic };
+  }
   return { text: glyph(ITEMS[opt]), shape: false };
+}
+
+/** Содержимое варианта: буква/цифра, фигура или картинка. */
+export function OptionFace({ opt, size = 110 }: { opt: string; size?: number }) {
+  const l = optionLabel(opt);
+  return l.pic ? <Pic obj={l.pic} size={size} /> : <>{l.text}</>;
 }
 
 let retryTurn = 0;

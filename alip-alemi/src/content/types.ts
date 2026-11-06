@@ -54,6 +54,8 @@ export interface LetterItem {
   introClip?: string;
   findClip?: string;
   balloonsClip?: string;
+  /** «Қай сөз А әрпінен басталады?» */
+  matchClip?: string;
   /** «А әрпін жаз» — напиши сам. */
   writeClip?: string;
   /** Буквы, которые дети часто путают с этой. */

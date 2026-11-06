@@ -19,7 +19,7 @@ export const CURRICULUM = {
 
 export type TaskType =
   | 'intro' | 'recognize' | 'listen' | 'trace' | 'balloons' | 'write' | 'check'
-  | 'numIntro' | 'count' | 'basket' | 'chooseGroup' | 'findDigit' | 'matchDigit';
+  | 'numIntro' | 'count' | 'basket' | 'chooseGroup' | 'findDigit' | 'matchDigit' | 'wordMatch';
 
 /** Пороги и интервалы — все настраиваемые. */
 export const RULES = {

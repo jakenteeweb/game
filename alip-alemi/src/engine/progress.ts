@@ -69,7 +69,7 @@ export function newProgress(profileId: string, itemId: string, track: Track): It
 /** Какой навык проверяет тип задания. */
 export function skillOf(type: TaskType): Skill | null {
   switch (type) {
-    case 'recognize': case 'findDigit': case 'check': return 'visual';
+    case 'recognize': case 'findDigit': case 'check': case 'wordMatch': return 'visual';
     case 'listen': return 'audio';
     case 'trace': case 'balloons': case 'write': return 'practice';
     case 'basket': case 'chooseGroup': case 'matchDigit': return 'quantity';
