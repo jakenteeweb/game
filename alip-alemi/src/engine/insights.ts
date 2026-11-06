@@ -11,7 +11,7 @@ export function stateOf(p: ItemProgress | undefined): ItemState {
 }
 
 const STAGE_NAMES: Record<string, string> = {
-  intro: 'знакомство', recognize: 'узнавание', listen: 'на слух', trace: 'обведение', balloons: 'игра-закрепление',
+  intro: 'знакомство', recognize: 'узнавание', listen: 'на слух', trace: 'обведение', write: 'написать самому', balloons: 'игра-закрепление',
   check: 'проверка после перерыва', numIntro: 'знакомство', count: 'пересчёт', basket: 'корзина', chooseGroup: 'выбор группы',
   findDigit: 'поиск цифры',
 };

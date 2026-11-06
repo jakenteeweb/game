@@ -71,7 +71,7 @@ export function skillOf(type: TaskType): Skill | null {
   switch (type) {
     case 'recognize': case 'findDigit': case 'check': return 'visual';
     case 'listen': return 'audio';
-    case 'trace': case 'balloons': return 'practice';
+    case 'trace': case 'balloons': case 'write': return 'practice';
     case 'basket': case 'chooseGroup': case 'matchDigit': return 'quantity';
     default: return null; // знакомство и пересчёт — только показ
   }

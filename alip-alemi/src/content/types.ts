@@ -54,6 +54,8 @@ export interface LetterItem {
   introClip?: string;
   findClip?: string;
   balloonsClip?: string;
+  /** «А әрпін жаз» — напиши сам. */
+  writeClip?: string;
   /** Буквы, которые дети часто путают с этой. */
   confusable?: string[];
   methodNote?: string;
@@ -73,6 +75,7 @@ export interface NumberItem {
   findClip?: string;
   basketClip?: string;
   chooseClip?: string;
+  writeClip?: string;
   confusable?: string[];
 }
 

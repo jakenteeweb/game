@@ -49,6 +49,7 @@ export const NUMBERS: NumberItem[] = ORDER.map((value) => {
   item.introClip = add({ id: `${p}.intro`, kind: 'instruction', text: `Бұл – ${w}.`, ttsAllowed: true });
   item.findClip = add({ id: `${p}.find`, kind: 'instruction', text: `${cap} цифрын тап.`, ttsAllowed: true });
   add({ id: `${p}.total`, kind: 'instruction', text: `Барлығы – ${w}.`, ttsAllowed: true });
+  item.writeClip = add({ id: `${p}.write`, kind: 'instruction', text: `${cap} цифрын жаз.`, ttsAllowed: true });
   item.chooseClip = add({ id: `${p}.choose`, kind: 'instruction', text: `Қай суретте ${w} зат бар?`, ttsAllowed: true });
   for (const o of BASKET_OBJECTS) {
     add({ id: `${p}.basket.${o.word}`, kind: 'instruction', text: `Себетке ${w} ${o.word} сал.`, ttsAllowed: true });

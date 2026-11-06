@@ -270,7 +270,7 @@ export function planSession(input: PlanInput): SessionPlan {
 export function easierType(t: TaskType): TaskType {
   switch (t) {
     case 'listen': case 'balloons': case 'check': return 'recognize';
-    case 'trace': return 'trace';
+    case 'trace': case 'write': return 'trace';
     case 'matchDigit': case 'basket': case 'chooseGroup': return 'count';
     case 'findDigit': return 'findDigit';
     default: return t;
