@@ -108,7 +108,8 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /** Применить результат задания к прогрессу символа. Возвращает новый объект. */
 export function applyOutcome(prev: ItemProgress, outcome: Outcome, ctx: ApplyContext): ItemProgress {
-  const p: ItemProgress = structuredClone(prev);
+  // JSON-копия вместо structuredClone: работает и в старых браузерах телефонов.
+  const p: ItemProgress = JSON.parse(JSON.stringify(prev));
   const { now, sessionIndex, taskType } = ctx;
   const realType = ctx.checkAs ?? taskType;
   const independent = isIndependent(outcome);
