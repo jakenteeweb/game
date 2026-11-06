@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { audio } from '../audio/audio';
 import { ALL_ITEMS, CLIPS, ITEMS, LETTERS, NUMBERS, glyph, type Clip, type Item, type ReviewStatus } from '../content';
 import type { SessionLength } from '../content/curriculum';
@@ -160,10 +160,15 @@ function ProgressTab() {
   const [reset, setReset] = useState(false);
   const profile = app.profiles.find((p) => p.id === pid);
 
+  const current = useRef(pid);
+  current.current = pid;
   const load = async () => {
     if (!pid) return;
-    setProgress(await db.progressFor(pid));
-    setSessions(await db.sessionsFor(pid));
+    const forPid = pid;
+    const [pr, ss] = await Promise.all([db.progressFor(forPid), db.sessionsFor(forPid)]);
+    if (current.current !== forPid) return; // пока грузилось, выбрали другого ребёнка
+    setProgress(pr);
+    setSessions(ss);
   };
   useEffect(() => {
     void load();
@@ -330,6 +335,9 @@ function ContentTab() {
           <input type="checkbox" checked={app.settings.showDrafts} onChange={(e) => void app.saveSettings({ showDrafts: e.target.checked })} />
           Балаға «жоба» күйіндегі сабақтарды көрсету
         </label>
+        {!app.settings.showDrafts && prepared.every((i) => app.statusOf(i) === 'draft') && (
+          <div className="banner warn">Барлық сабақ «жоба» күйінде — бұл белгі алынса, балаға бірде-бір сабақ көрсетілмейді. Сабақтарды «тексерілді» деп белгілеңіз немесе белгіні қайта қойыңыз.</div>
+        )}
         <table className="clips">
           <tbody>
             {prepared.map((i) => (

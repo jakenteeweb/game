@@ -171,6 +171,10 @@ export function Home() {
           <span className="label">Сандар</span>
         </button>
       </div>
+      <button className="big-btn play-btn" onClick={() => app.go({ name: 'games' })} aria-label="Ойнап үйрен">
+        <span className="preview">🃏🍎🎈</span>
+        <span>Ойнап үйрен</span>
+      </button>
       <button className="big-btn garden-btn" onClick={() => app.go({ name: 'garden' })} aria-label="Менің бағым">
         <span className="preview">{profile.garden.slice(-5).join('') || '🌱'}</span>
         <span>Менің бағым</span>

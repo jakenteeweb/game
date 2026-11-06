@@ -189,9 +189,9 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 
 .basket-area { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 640px; flex: 1; }
 .pile { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 90px; }
-.pile button { font-size: 64px; border: none; background: none; line-height: 1; padding: 4px; transition: transform .15s; }
+.pile button { font-size: 56px; border: none; background: none; line-height: 1; padding: 4px; transition: transform .15s; }
 .pile button:active { transform: scale(.9); }
-.basket { position: relative; width: min(92%, 380px); aspect-ratio: 480 / 495; }
+.basket { position: relative; width: min(92%, 380px, 40vh); aspect-ratio: 480 / 495; }
 .basket img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
 /* Передний край: та же картинка, обрезанная по верхней линии переднего обода. */
 .basket-front { clip-path: polygon(0% 51.5%, 12.5% 54%, 25% 57%, 37.5% 58%, 50% 58.4%, 62.5% 58%, 75% 57%, 87.5% 54%, 100% 51.5%, 100% 100%, 0% 100%); }
@@ -321,3 +321,29 @@ table.clips td, table.clips th { border-bottom: 1px solid #eee5da; padding: 8px 
 .choice.pic img { width: 62% !important; height: 62% !important; }
 .letter-card { font-family: var(--glyph); font-weight: 800; font-size: 72px; color: var(--fox-dark); padding: 6px 28px; }
 .balloon .b img { width: 60% !important; height: 60% !important; }
+
+/* ------- «Ойнап үйрен» ------- */
+.play-btn { margin: 16px auto 0; width: 100%; max-width: 640px; flex-direction: row; font-size: 22px; background: linear-gradient(160deg, #fff 0%, #f3e9ff 100%); }
+.play-btn .preview { font-size: 30px; letter-spacing: 2px; }
+.play-btn + .garden-btn { margin-top: 12px; }
+.games-list { display: grid; gap: 16px; width: 100%; max-width: 560px; margin: 16px auto 0; }
+.game-card { flex-direction: row; justify-content: flex-start; gap: 18px; min-height: 110px; font-size: 24px; text-align: left; }
+.game-card .game-icon { font-size: 56px; }
+.game-card.locked { opacity: .5; }
+.memory { display: grid; gap: 12px; width: 100%; max-width: 520px; grid-template-columns: repeat(3, 1fr); }
+.memory.n4 { grid-template-columns: repeat(2, 1fr); max-width: 380px; }
+.mem-card {
+  aspect-ratio: 3 / 4; border: none; border-radius: 22px; background: linear-gradient(160deg, #fff7ea, #f6dcb7); box-shadow: var(--shadow);
+  display: grid; place-items: center; padding: 8px; transition: transform .25s ease, background .25s ease;
+}
+.mem-card.open { background: var(--paper); transform: rotateY(0); animation: flip .3s ease; }
+.mem-card.done { background: #e5f5e2; }
+.mem-back { width: 70%; opacity: .55; }
+.mem-glyph { font-family: var(--glyph); font-weight: 800; font-size: clamp(48px, 13vw, 84px); color: var(--fox-dark); line-height: 1; }
+.mem-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 80%; }
+.mem-dots i { width: 22px; height: 22px; border-radius: 50%; background: var(--sky-dark); }
+@keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }
+.feed-scene { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.feed-plate { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 46px; max-width: 260px; }
+.feed-plate .fed { animation: drop .35s ease; }
+.feed-goal { font-family: var(--glyph); font-weight: 800; font-size: 64px; color: var(--sky-dark); background: var(--paper); border-radius: 24px; padding: 2px 26px; box-shadow: var(--shadow); }

@@ -106,7 +106,7 @@ export function useChoice(spec: TaskSpec, correct: (opt: string) => boolean, onD
     if (guard.wrongBurst()) {
       // Похоже на нажатия наугад: не засчитываем, спокойно повторяем задание.
       hinted.current = true;
-      void audio.play(['c.slow', { pause: 200 }]).then(replay);
+      void audio.play(['c.slow', { pause: 200 }]).then((ok) => ok && !finished.current && replay());
       return;
     }
     chime('soft');

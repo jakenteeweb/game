@@ -10,6 +10,8 @@ export type Screen =
   | { name: 'home' }
   | { name: 'session'; track: 'letters' | 'numbers'; id: number }
   | { name: 'garden' }
+  | { name: 'games' }
+  | { name: 'game'; game: 'memory' | 'feed' | 'pop'; id: number }
   | { name: 'parent' };
 
 interface AppState {

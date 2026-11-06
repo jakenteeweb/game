@@ -122,6 +122,16 @@
   "l.q.match": "l.q.match.mp3",
   "l.n.match": "l.n.match.mp3",
   "l.t.match": "l.t.match.mp3",
-  "l.ue.match": "l.ue.match.mp3"
+  "l.ue.match": "l.ue.match.mp3",
+  "c.play": "c.play.mp3",
+  "c.memory": "c.memory.mp3",
+  "c.pop": "c.pop.mp3",
+  "c.lesson_first": "c.lesson_first.mp3",
+  "c.thanks": "c.thanks.mp3",
+  "n.1.feed": "n.1.feed.mp3",
+  "n.2.feed": "n.2.feed.mp3",
+  "n.3.feed": "n.3.feed.mp3",
+  "n.4.feed": "n.4.feed.mp3",
+  "n.5.feed": "n.5.feed.mp3"
  }
 }

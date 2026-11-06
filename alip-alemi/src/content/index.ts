@@ -37,6 +37,11 @@ const COMMON: Clip[] = [
   { id: 'c.letters', kind: 'instruction', text: 'Әріптер', ttsAllowed: true },
   { id: 'c.numbers', kind: 'instruction', text: 'Сандар', ttsAllowed: true },
   { id: 'c.my_garden', kind: 'instruction', text: 'Менің бағым', ttsAllowed: true },
+  { id: 'c.play', kind: 'instruction', text: 'Ойнап үйрен', ttsAllowed: true },
+  { id: 'c.memory', kind: 'instruction', text: 'Жұбын тап! Екі карточканы аш.', ttsAllowed: true },
+  { id: 'c.pop', kind: 'instruction', text: 'Мен айтқанды тауып, шарды жар!', ttsAllowed: true },
+  { id: 'c.lesson_first', kind: 'instruction', text: 'Алдымен сабақтан өтейік.', ttsAllowed: true },
+  { id: 'c.thanks', kind: 'feedback', text: 'Рақмет! Тойдым!', ttsAllowed: true },
 ];
 
 export const CLIPS: Record<string, Clip> = Object.fromEntries(

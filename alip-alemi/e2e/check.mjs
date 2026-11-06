@@ -227,6 +227,38 @@ assert(n1.some((t) => t.type === 'numIntro'), 'знакомство с числ�
 const n2 = await playSession('numbers');
 log('Числа 2:', n2.map((t) => `${t.type}:${t.item}`).join(' '));
 
+// «Ойнап үйрен»: все три игры проходятся до конца
+await page.locator('[aria-label="Ойнап үйрен"]').click();
+for (const game of ['memory', 'feed', 'pop']) {
+  await page.locator(`[data-game="${game}"]`).click();
+  const end = page.locator('[aria-label="Ойындар"]');
+  for (let guard = 0; guard < 40 && !(await end.count()); guard++) {
+    await page.waitForTimeout(700);
+    if (game === 'memory') {
+      const cards = page.locator('.mem-card:not(.done)');
+      if (!(await cards.count())) continue;
+      const pair = await cards.first().getAttribute('data-pair');
+      const both = page.locator(`.mem-card[data-pair="${pair}"]:not(.done)`);
+      await both.nth(0).click(); await both.nth(1).click();
+      await page.waitForTimeout(800);
+    } else if (game === 'feed') {
+      const goal = await page.locator('.feed-goal').textContent().catch(() => null);
+      if (!goal) continue;
+      for (let k = 0; k < +goal; k++) { await page.locator('.pile button').first().click(); await page.waitForTimeout(250); }
+      await page.waitForTimeout(2500);
+    } else {
+      const target = await page.locator('.sky').getAttribute('data-target').catch(() => null);
+      if (!target) continue;
+      const bs = page.locator(`.balloon[data-opt="${target}"]:not(.popped)`);
+      while (await bs.count()) { await bs.first().click({ force: true }); await page.waitForTimeout(300); }
+      await page.waitForTimeout(1500);
+    }
+  }
+  assert(await end.count(), `игра «${game}» проходится до конца`);
+  await end.click();
+}
+await page.locator('[aria-label="Үйге"]').click();
+
 // Прогресс у родителя и изоляция профилей
 await enterParent();
 await page.locator('.tabs button', { hasText: 'Үлгерім' }).click();
