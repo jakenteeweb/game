@@ -4,7 +4,7 @@ import { AppProvider, useApp } from './state';
 import { Garden, Home, ProfilePicker, Welcome } from './ui/ChildScreens';
 import { Parent } from './ui/Parent';
 import { SessionScreen } from './ui/SessionScreen';
-import { Fox } from './ui/Fox';
+import { Mascot } from './ui/Mascot';
 
 function Router() {
   const { screen, profile } = useApp();
@@ -12,7 +12,7 @@ function Router() {
   useEffect(() => setSafeToReload(['loading', 'welcome', 'pick', 'home', 'garden'].includes(screen.name)), [screen.name]);
   switch (screen.name) {
     case 'loading':
-      return <div className="screen"><div className="center"><Fox size="big" mood="sleep" /></div></div>;
+      return <div className="screen"><div className="center"><Mascot size="big" mood="sleep" /></div></div>;
     case 'welcome':
       return <Welcome />;
     case 'pick':

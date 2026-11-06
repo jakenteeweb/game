@@ -134,7 +134,7 @@ export function TraceTask({ spec, onDone, setReplay }: TaskProps) {
                 <animateMotion dur={demo ? '1.6s' : '2.2s'} repeatCount="indefinite" path={`M${current.map((p) => p.join(' ')).join(' L')}`} />
               </circle>
               {/* старт */}
-              <text key={nudge} x={current[0][0]} y={current[0][1] + 4} fontSize="13" textAnchor="middle" className={nudge ? 'fox bounce' : ''}>⭐</text>
+              <text key={nudge} x={current[0][0]} y={current[0][1] + 4} fontSize="13" textAnchor="middle" className={nudge ? 'nudge' : ''}>⭐</text>
             </>
           )}
           {path.length > 1 && <polyline points={toPoints(path)} fill="none" stroke="#ee8a3c" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />}

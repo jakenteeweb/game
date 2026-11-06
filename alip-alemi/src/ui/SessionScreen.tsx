@@ -11,7 +11,7 @@ import { TraceTask } from '../tasks/TraceTask';
 import { WriteTask } from '../tasks/WriteTask';
 import { BalloonsTask } from '../tasks/BalloonsTask';
 import { BasketTask, ChooseGroupTask, CountTask } from '../tasks/NumberTasks';
-import { Fox } from './Fox';
+import { Mascot } from './Mascot';
 import { nextRewards } from './garden';
 
 type Phase = 'greet' | 'task' | 'end';
@@ -136,7 +136,7 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
     return (
       <div className="screen">
         <div className="center">
-          <Fox size="big" mood="happy" />
+          <Mascot size="big" mood="cheer" />
           <div className="reward">{rewards.join(' ') || '🌱'}</div>
           <div className="row-wrap" style={{ gap: 18 }}>
             <button className="big-btn" style={{ width: 120, height: 110, fontSize: 48 }} aria-label="Үйге" onClick={() => app.go({ name: 'home' })}>🏡</button>
@@ -156,12 +156,12 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
         <div className="dots" aria-hidden="true">
           {[...Array(total)].map((_, i) => <span key={i} className={`dot ${i < index ? 'done' : i === index ? 'now' : ''}`} />)}
         </div>
-        <Fox size="small" bounceKey={praise || undefined} />
+        <Mascot size="small" bounceKey={praise || undefined} />
         <button className="icon-btn small" aria-label="Қайта тыңдау" onClick={() => void audio.play(replay.current)}>🔁</button>
       </div>
       {phase === 'greet' || !showTask ? (
         <div className="center">
-          <Fox size="big" mood="happy" />
+          <Mascot size="big" />
         </div>
       ) : (
         <>

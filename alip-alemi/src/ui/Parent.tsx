@@ -7,7 +7,7 @@ import { availableItems } from '../engine/session';
 import { dueSoon, observations, stageLabel, stateOf } from '../engine/insights';
 import { db, newId, type Profile, type SessionLog } from '../storage/db';
 import { canHearId, useApp } from '../state';
-import { useAudioVersion } from './Fox';
+import { useAudioVersion } from './Mascot';
 
 type Tab = 'kids' | 'progress' | 'sound' | 'content';
 const AVATARS = ['🐻', '🐰', '🐱', '🐶', '🦉', '🐼', '🐨', '🐯', '🦁', '🐸', '🐧', '🦄'];
