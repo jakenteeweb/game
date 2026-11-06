@@ -1,5 +1,5 @@
 // Построение занятия. Чистая логика: на вход — прогресс, на выход — список заданий.
-import { CURRICULUM, RULES, type SessionLength, type TaskType } from '../content/curriculum';
+import { CURRICULUM, RULES, stagesFor, type SessionLength, type TaskType } from '../content/curriculum';
 import { ITEMS, SHAPES, glyph, itemsOf, isLetter } from '../content';
 import { PICTURES, PICTURE_BY_ID } from '../content/pictures';
 import { BASKET_OBJECTS as BASKET_OBJECTS_REF, COUNT_OBJECTS as COUNT_OBJECTS_REF } from '../content/numbers';
@@ -48,6 +48,8 @@ export interface PlanInput {
   rng: Rng;
   /** Есть ли озвучка, чтобы проверить символ на слух. */
   canHear: (item: Item) => boolean;
+  /** Сколько новых символов можно ввести за занятие (6–7 лет — 2). */
+  maxNew?: number;
   /** Статусы, которые можно показывать детям. Неподготовленные (stub) — никогда. */
   isAvailable?: (item: Item) => boolean;
 }
@@ -75,14 +77,17 @@ export function knownItems(track: Track, progress: PlanInput['progress']): Item[
 }
 
 /**
- * Варианты для выбора: правильный ответ + знакомые символы (сначала похожие) + фигуры-заполнители.
- * Незнакомые буквы никогда не попадают в варианты.
+ * Варианты для выбора — только буквы (или цифры) из всего алфавита:
+ * сначала нарочно похожие (Н–Ң, У–Ү–Ұ, А–Ә…), потом знакомые, потом остальные.
  */
 export function buildOptions(target: Item, known: Item[], n: number, rng: Rng): string[] {
-  const others = known.filter((k) => k.id !== target.id);
-  const confusable = others.filter((k) => target.confusable?.includes(glyph(k)));
-  const rest = shuffle(others.filter((k) => !confusable.includes(k)), rng);
-  const picked = [...shuffle(confusable, rng), ...rest].slice(0, n - 1).map((i) => i.id);
+  const pool = itemsOf(target.track).filter((i) => i.status !== 'stub' && i.id !== target.id && !(i.track === 'numbers' && i.value > 9 && target.track === 'numbers' && (target as { value: number }).value <= 9));
+  const confusable = shuffle(pool.filter((k) => target.confusable?.includes(glyph(k))), rng);
+  const knownOthers = shuffle(known.filter((k) => k.id !== target.id && !confusable.includes(k)), rng);
+  const rest = shuffle(pool.filter((k) => !confusable.includes(k) && !knownOthers.includes(k)), rng);
+  // Похожие — максимум половина вариантов, чтобы задание не превращалось в лотерею.
+  const nConf = Math.max(1, Math.floor((n - 1) / 2) + (n === 2 ? 0 : 0));
+  const picked = [...confusable.slice(0, nConf), ...knownOthers, ...rest].filter((v, i, a) => a.indexOf(v) === i).slice(0, n - 1).map((i) => i.id);
   // Для букв недостающие варианты — картинки (ребёнок отличает букву от предмета), для цифр — фигуры.
   const fillers = target.track === 'letters'
     ? shuffle(PICTURES.filter((p) => p.id !== letterPictureId(target)), rng).map((p) => `pic:${p.id}`)
@@ -121,8 +126,8 @@ export function buildBalloons(target: Item, known: Item[], rng: Rng, targets = 2
   return shuffle(list, rng);
 }
 
-function stagesOf(track: Track) {
-  return CURRICULUM.stages[track];
+function stagesOf(item: Item) {
+  return stagesFor(item.track, item.strokes.length > 0);
 }
 
 /** Тип, который реально увидит ребёнок для данного запланированного типа. */
@@ -138,7 +143,7 @@ function resolveShowAs(type: TaskType, item: Item, rng: Rng, canHear: (i: Item) 
 
 /** Типы заданий для повторения: пройденные этапы и текущий этап (для разнообразия). */
 function reviewTypes(item: Item, p: ItemProgress, canHear: (i: Item) => boolean): TaskType[] {
-  const stages = stagesOf(item.track);
+  const stages = stagesOf(item);
   const passed = p.mastered ? stages : stages.slice(0, p.stage + 1);
   let types = passed.filter((t) => !isExposure(t) && t !== 'check');
   if (item.track === 'numbers') {
@@ -206,7 +211,7 @@ export function planSession(input: PlanInput): SessionPlan {
   const use = (t: TaskSpec) => (usedTypes[t.itemId] = [...(usedTypes[t.itemId] ?? []), t.showAs]);
   const reviewTask = (item: Item, reason: TaskReason): TaskSpec => {
     const p = P(item);
-    const stages = stagesOf(item.track);
+    const stages = stagesOf(item);
     // Если подошла «проверка после перерыва» — она и будет повторением.
     if (stages[p.stage] === 'check' && (p.introducedSession ?? sessionIndex) < sessionIndex && reason === 'review') {
       return makeTask('check', item, reason, input);
@@ -235,10 +240,11 @@ export function planSession(input: PlanInput): SessionPlan {
   const next = available.find((i) => (progress[i.id]?.stage ?? 0) === 0);
   const canIntroduce = !!next && !struggling && learning.length < RULES.maxLearningAtOnce && RULES.maxNewPerSession > 0;
   let newItemId: string | undefined;
+  let secondNewId: string | undefined;
 
   if (canIntroduce && next) {
     newItemId = next.id;
-    const stages = stagesOf(track);
+    const stages = stagesOf(next);
     push(middle, makeTask(stages[0], next, 'new', input));
     // Следующие этапы нового символа; между ними — знакомое, чтобы не было однообразия.
     const filler = shuffle(introduced, rng);
@@ -249,10 +255,20 @@ export function planSession(input: PlanInput): SessionPlan {
     }
   }
 
+  // 2б. Для 6–7 лет — ещё один новый символ, если первый пошёл и ребёнку не трудно.
+  if (newItemId && (input.maxNew ?? RULES.maxNewPerSession) > 1) {
+    const second = available.find((i) => (progress[i.id]?.stage ?? 0) === 0 && i.id !== newItemId);
+    if (second && learning.length + 2 <= RULES.maxLearningAtOnce + 1) {
+      push(middle, makeTask(stagesOf(second)[0], second, 'new', input));
+      push(middle, makeTask(stagesOf(second)[1], second, 'new', input));
+      secondNewId = second.id;
+    }
+  }
+
   // 3. Продолжаем изучение начатых символов: следующий этап каждого.
   for (const item of learning) {
     const p = P(item);
-    const stage = stagesOf(track)[p.stage];
+    const stage = stagesOf(item)[p.stage];
     // Пропускаем только знакомство; «пересчёт» тоже этап, иначе число навсегда застрянет на нём.
     if (!stage || stage === 'intro' || stage === 'numIntro') continue;
     if (stage === 'check' && (p.introducedSession ?? sessionIndex) >= sessionIndex) continue;
@@ -264,6 +280,7 @@ export function planSession(input: PlanInput): SessionPlan {
   if (newItemId) {
     const item = ITEMS[newItemId];
     push(tail, makeTask(item.track === 'letters' ? 'recognize' : 'findDigit', item, 'return', { ...input, progress: { ...progress, [item.id]: progress[item.id] } }));
+    if (secondNewId) push(tail, makeTask(ITEMS[secondNewId].track === 'letters' ? 'recognize' : 'findDigit', ITEMS[secondNewId], 'return', input));
   } else if (introduced.length > 0) {
     const item = pick(introduced, rng);
     push(tail, reviewTask(item, 'return'));

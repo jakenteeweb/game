@@ -10,9 +10,9 @@ const toPoints = (s: Point[]) => s.map((p) => p.join(',')).join(' ');
  * «Жаз!» — напиши сам. Тетрадный лист в клетку, без контура.
  * Ребёнок пишет пальцем, приложение распознаёт написанное и показывает результат.
  */
-export function WriteTask({ spec, onDone, setReplay }: TaskProps) {
+export function WriteTask({ spec, onDone, setReplay, steps: custom }: TaskProps & { steps?: Step[] }) {
   const item = itemOf(spec);
-  const steps: Step[] = [item.writeClip!];
+  const steps: Step[] = custom ?? [item.writeClip!];
   useInstruction(steps, setReplay, [spec.uid]);
 
   // Сравниваем со всеми подготовленными символами этой дорожки: так «Н» вместо «Т» распознаётся как «Н».
@@ -76,7 +76,7 @@ export function WriteTask({ spec, onDone, setReplay }: TaskProps) {
     }
     errors.current += 1;
     chime('soft');
-    // Лист очищаем сразу: ребёнок может начать писать заново, пока Ботақан говорит.
+    // Лист очищаем сразу: ребёнок может начать писать заново, пока Ханшайым говорит.
     setStrokes([]);
     // Показываем, что получилось: «Сен мынаны жаздың: Н».
     const said: Step[] = [];

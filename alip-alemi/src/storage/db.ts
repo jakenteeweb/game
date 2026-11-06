@@ -25,6 +25,8 @@ export interface Profile {
   garden: string[];
   /** День последней награды за каждую игру «Ойнап үйрен». */
   gameRewards?: Record<string, string>;
+  /** Звёзды за правильные ответы и выигранные раунды; каждые 20 звёзд — новый уровень. */
+  stars?: number;
 }
 
 export interface SessionLog {

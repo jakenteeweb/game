@@ -3,6 +3,7 @@ import { audio, music } from '../audio/audio';
 import { useApp } from '../state';
 import { Mascot } from './Mascot';
 import { gardenSpot } from './garden';
+import { levelOf, levelProgress } from '../engine/stars';
 
 /** Кнопка для взрослых: нужно удерживать 2 секунды, одно касание не сработает. */
 export function HoldButton({ onHold, label, children }: { onHold: () => void; label: string; children: React.ReactNode }) {
@@ -154,26 +155,30 @@ export function Home() {
         <button className="icon-btn" aria-label={profile.nickname} onClick={() => app.go({ name: 'pick' })}>
           <span className="avatar">{profile.avatar}</span>
         </button>
+        <StarsPill stars={profile.stars ?? 0} />
         <span className="spacer" />
         <button className={`icon-btn small ${musicOn ? '' : 'off'}`} aria-label="Әуен" onClick={toggleMusic}>{musicOn ? '🎵' : '🔇'}</button>
         <ParentEntry />
       </div>
       <div className="home-hero">
         <Mascot size="big" />
+        <span className="bubble">Сәлем, {profile.nickname}!</span>
       </div>
       <div className="home-tracks">
         <button className="big-btn track-card letters" onClick={() => start('letters')} aria-label="Әріптер">
+          <span className="tag">Сабақ</span>
           <span className="sym">Аа</span>
           <span className="label">Әріптер</span>
         </button>
         <button className="big-btn track-card numbers" onClick={() => start('numbers')} aria-label="Сандар">
+          <span className="tag">Сабақ</span>
           <span className="sym">123</span>
           <span className="label">Сандар</span>
         </button>
       </div>
-      <button className="big-btn play-btn" onClick={() => app.go({ name: 'games' })} aria-label="Ойнап үйрен">
-        <span className="preview">🃏🍎🎈</span>
-        <span>Ойнап үйрен</span>
+      <button className="big-btn play-btn" onClick={() => app.go({ name: 'games' })} aria-label="Ойындар">
+        <span className="preview">🎮</span>
+        <span>Ойындар</span>
       </button>
       <button className="big-btn garden-btn" onClick={() => app.go({ name: 'garden' })} aria-label="Менің бағым">
         <span className="preview">{profile.garden.slice(-5).join('') || '🌱'}</span>
@@ -206,5 +211,16 @@ export function Garden() {
         })}
       </div>
     </div>
+  );
+}
+
+/** Звёзды и уровень ребёнка. */
+export function StarsPill({ stars }: { stars: number }) {
+  return (
+    <span className="stars-pill" aria-label={`${stars} жұлдыз`}>
+      ⭐ {stars}
+      <span className="bar"><i style={{ width: `${Math.round(levelProgress(stars) * 100)}%` }} /></span>
+      <span className="lvl">{levelOf(stars)}-деңгей</span>
+    </span>
   );
 }

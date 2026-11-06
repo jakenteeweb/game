@@ -1,18 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { audio, chime, type Step } from '../audio/audio';
-import { ITEMS, PRAISE, type LetterItem, type NumberItem } from '../content';
-import { PICTURES } from '../content/pictures';
+import { ITEMS, NUMBERS, PRAISE, type LetterItem, type NumberItem } from '../content';
+import { PICTURES, type Picture } from '../content/pictures';
 import { db } from '../storage/db';
 import { useApp } from '../state';
 import { Mascot } from '../ui/Mascot';
 import { nextRewards } from '../ui/garden';
+import { giveStars } from '../ui/LevelToast';
 import { Pic } from '../tasks/objects';
-import { isUnlocked, knownFor, memoryCards, rewardDue, shuffle, todayKey, type GameId, type Known, type MemoryCard } from './games';
+import { retryClip } from '../tasks/common';
+import { WriteTask } from '../tasks/WriteTask';
+import { levelOf } from '../engine/stars';
+import { SYL_CONSONANTS, SYL_VOWELS } from '../content/syllables';
+import {
+  knownFor, letterOf, mathTask, memoryCards, missingLetter, pickSyllable, pictureOfWord, pictureOptions, readingWords,
+  rewardDue, shuffle, syllableOptions, todayKey, wordTiles, type GameId, type Known, type MemoryCard,
+} from './games';
 
-const GAMES: { id: GameId; icon: string; title: string }[] = [
-  { id: 'memory', icon: '🃏', title: 'Жұбын тап' },
-  { id: 'feed', icon: '🍎', title: 'Ботақанды тамақтандыр' },
-  { id: 'pop', icon: '🎈', title: 'Шарды жар' },
+const GAMES: { id: GameId; icon: string; title: string; color: string }[] = [
+  { id: 'syl', icon: '🔤', title: 'Буын', color: 'blue' },
+  { id: 'word', icon: '🧩', title: 'Сөз құра', color: 'green' },
+  { id: 'math', icon: '➕', title: 'Есеп', color: 'orange' },
+  { id: 'dict', icon: '✍️', title: 'Диктант', color: 'pink' },
+  { id: 'memory', icon: '🃏', title: 'Жұбын тап', color: 'yellow' },
+  { id: 'pop', icon: '🎈', title: 'Шарды жар', color: 'blue' },
+  { id: 'feed', icon: '🍎', title: 'Ханшайымды тамақтандыр', color: 'green' },
 ];
 
 function useKnown(): Known | null {
@@ -25,14 +37,12 @@ function useKnown(): Known | null {
   return known;
 }
 
-/** Раздел «Ойнап үйрен»: список лёгких игр. */
+/** Раздел «Ойындар»: все игры открыты. */
 export function GamesScreen() {
   const app = useApp();
-  const known = useKnown();
   useEffect(() => {
-    void audio.play(['c.play']);
+    void audio.play(['c.games']);
   }, []);
-  if (!known) return null;
   return (
     <div className="screen">
       <div className="topbar">
@@ -41,24 +51,28 @@ export function GamesScreen() {
         <Mascot size="small" />
       </div>
       <div className="games-list">
-        {GAMES.map((g) => {
-          const open = isUnlocked(g.id, known);
-          return (
-            <button
-              key={g.id}
-              className={`big-btn game-card ${open ? '' : 'locked'}`}
-              aria-label={g.title}
-              data-game={g.id}
-              onClick={() => (open ? app.go({ name: 'game', game: g.id, id: Date.now() }) : void audio.play(['c.lesson_first']))}
-            >
-              <span className="game-icon">{open ? g.icon : '🔒'}</span>
-              <span className="label">{g.title}</span>
-            </button>
-          );
-        })}
+        {GAMES.map((g) => (
+          <button
+            key={g.id}
+            className={`big-btn game-card c-${g.color}`}
+            aria-label={g.title}
+            data-game={g.id}
+            onClick={() => app.go({ name: 'game', game: g.id, id: Date.now() })}
+          >
+            <span className="game-icon">{g.icon}</span>
+            <span className="label">{g.title}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
+}
+
+interface GameProps {
+  known: Known;
+  /** Раунд выигран: +1 звезда. */
+  onWin: () => void;
+  onFinish: () => void;
 }
 
 /** Одна игра + спокойное завершение с наградой (не чаще раза в день на игру). */
@@ -67,8 +81,15 @@ export function GameScreen({ game }: { game: GameId }) {
   const known = useKnown();
   const [done, setDone] = useState(false);
   const [reward, setReward] = useState<string | null>(null);
+  const finishing = useRef(false);
+
+  const onWin = () => {
+    if (app.profile) void giveStars(app.profile.id, 1, app.refresh);
+  };
 
   const finish = async () => {
+    if (finishing.current) return;
+    finishing.current = true;
     audio.stop();
     const profile = app.profile && (await db.getProfile(app.profile.id));
     let got: string | null = null;
@@ -102,6 +123,7 @@ export function GameScreen({ game }: { game: GameId }) {
       </div>
     );
   }
+  const props: GameProps = { known, onWin, onFinish: () => void finish() };
   return (
     <div className="screen">
       <div className="session-top">
@@ -109,9 +131,341 @@ export function GameScreen({ game }: { game: GameId }) {
         <span className="spacer" style={{ flex: 1 }} />
         <Mascot size="small" />
       </div>
-      {game === 'memory' && <MemoryGame known={known} onFinish={() => void finish()} />}
-      {game === 'feed' && <FeedGame known={known} onFinish={() => void finish()} />}
-      {game === 'pop' && <PopGame known={known} onFinish={() => void finish()} />}
+      {game === 'memory' && <MemoryGame {...props} />}
+      {game === 'feed' && <FeedGame {...props} />}
+      {game === 'pop' && <PopGame {...props} />}
+      {game === 'syl' && <SyllableGame {...props} />}
+      {game === 'word' && <WordGame {...props} />}
+      {game === 'math' && <MathGame {...props} level={levelOf(app.profile?.stars ?? 0)} />}
+      {game === 'dict' && <DictationGame {...props} />}
+    </div>
+  );
+}
+
+// ---------------- Общие детали раундовых игр ----------------
+
+/** Раунды: после победы — похвала, звезда и следующий раунд. */
+function useRounds(total: number, onWin: () => void, onFinish: () => void) {
+  const [round, setRound] = useState(0);
+  const busy = useRef(false);
+  const win = async (extra: Step[] = []) => {
+    if (busy.current) return;
+    busy.current = true;
+    onWin();
+    chime('pop');
+    await audio.play([...extra, PRAISE[Math.floor(Math.random() * PRAISE.length)]]);
+    busy.current = false;
+    if (round + 1 >= total) onFinish();
+    else setRound(round + 1);
+  };
+  return { round, win, total };
+}
+
+function RoundDots({ round, total }: { round: number; total: number }) {
+  return (
+    <div className="dots" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => <span key={i} className={`dot ${i < round ? 'done' : i === round ? 'now' : ''}`} />)}
+    </div>
+  );
+}
+
+/** Выбор из вариантов: первая ошибка — «попробуй ещё», вторая — подсказка. */
+function useGameChoice(answer: string, onRight: () => void) {
+  const [wrong, setWrong] = useState<string | null>(null);
+  const [right, setRight] = useState<string | null>(null);
+  const [hint, setHint] = useState(false);
+  const errors = useRef(0);
+  const tap = (key: string) => {
+    if (right) return;
+    if (key === answer) {
+      setRight(key);
+      setTimeout(onRight, 300);
+      return;
+    }
+    errors.current += 1;
+    setWrong(key);
+    setTimeout(() => setWrong(null), 450);
+    chime('soft');
+    if (errors.current >= 2) {
+      setHint(true);
+      void audio.play(['c.hint']);
+    } else void audio.play([retryClip()]);
+  };
+  const cls = (key: string) => ['choice', wrong === key ? 'wrong' : '', right === key ? 'right' : '', hint && key === answer && !right ? 'hint' : ''].join(' ');
+  return { tap, cls };
+}
+
+function Speaker({ steps }: { steps: Step[] }) {
+  return <button className="icon-btn speaker" aria-label="Тыңдау" onClick={() => void audio.play(steps)}>🔊</button>;
+}
+
+function Choices({ items, answer, onRight, size }: { items: { key: string; face: React.ReactNode; label: string }[]; answer: string; onRight: () => void; size?: 'big' }) {
+  const { tap, cls } = useGameChoice(answer, onRight);
+  return (
+    <div className={`choices n${items.length} ${size ?? ''}`} data-answer={answer}>
+      {items.map((it) => (
+        <button key={it.key} data-opt={it.key} className={cls(it.key)} aria-label={it.label} onClick={() => tap(it.key)}>{it.face}</button>
+      ))}
+    </div>
+  );
+}
+
+const picClip = (p: Picture) => `w.${p.id}`;
+const numClip = (v: number) => `n.${v}.name`;
+
+// ---------------- «Буын» ----------------
+
+const SYL_PLAN = ['listen', 'build', 'read', 'listen', 'build', 'read'] as const;
+
+function SyllableGame({ onWin, onFinish }: GameProps) {
+  const { round, win, total } = useRounds(SYL_PLAN.length, onWin, onFinish);
+  const kind = SYL_PLAN[round];
+  return (
+    <div className="stage">
+      <RoundDots round={round} total={total} />
+      {kind === 'listen' && <SylListen key={round} onRight={(s) => void win([s])} />}
+      {kind === 'build' && <SylBuild key={round} onRight={(s) => void win([s])} />}
+      {kind === 'read' && <ReadWord key={round} onRight={(s) => void win([s])} />}
+    </div>
+  );
+}
+
+function SylListen({ onRight }: { onRight: (clip: string) => void }) {
+  const { target, options } = useMemo(() => {
+    const t = pickSyllable(Math.random);
+    return { target: t, options: syllableOptions(t, Math.random) };
+  }, []);
+  const steps: Step[] = ['c.syl_listen', { pause: 300 }, target.clip];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /></div>
+      <Choices items={options.map((o) => ({ key: o.id, face: <span className="syl">{o.text}</span>, label: o.text }))} answer={target.id} onRight={() => onRight(target.clip)} />
+    </>
+  );
+}
+
+function SylBuild({ onRight }: { onRight: (clip: string) => void }) {
+  const { target, cons } = useMemo(() => {
+    const t = pickSyllable(Math.random);
+    const others = shuffle(SYL_CONSONANTS.filter((c) => c !== t.c), Math.random).slice(0, 2);
+    return { target: t, cons: shuffle([t.c, ...others], Math.random) };
+  }, []);
+  const [c, setC] = useState<string | null>(null);
+  const [v, setV] = useState<string | null>(null);
+  const [wrong, setWrong] = useState<string | null>(null);
+  const errors = useRef(0);
+  const steps: Step[] = ['c.syl_build', { pause: 300 }, target.clip];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const tap = (ch: string, isC: boolean) => {
+    if (c && v) return;
+    const ok = isC ? ch === target.c : ch === target.v;
+    if (!ok) {
+      errors.current += 1;
+      setWrong(ch);
+      setTimeout(() => setWrong(null), 450);
+      chime('soft');
+      void audio.play([errors.current >= 2 ? 'c.hint' : retryClip(), { pause: 200 }, target.clip]);
+      return;
+    }
+    chime('pop');
+    const nc = isC ? ch : c;
+    const nv = isC ? v : ch;
+    if (isC) setC(ch); else setV(ch);
+    if (nc && nv) setTimeout(() => onRight(target.clip), 300);
+    else { const l = letterOf(ch); if (l?.nameClip) void audio.play([l.nameClip]); }
+  };
+  const hintOn = errors.current >= 2;
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /></div>
+      <div className="slots" aria-label="буын" data-syl={target.c + target.v}>
+        <span className={`slot ${c ? 'filled' : ''}`}>{c ?? ''}</span>
+        <span className={`slot ${v ? 'filled' : ''}`}>{v ?? ''}</span>
+      </div>
+      <div className="tiles">
+        {cons.map((ch) => (
+          <button key={ch} data-tile={ch} className={`tile cons ${wrong === ch ? 'wrong' : ''} ${c === ch ? 'used' : ''} ${hintOn && !c && ch === target.c ? 'hint' : ''}`} onClick={() => tap(ch, true)}>{ch}</button>
+        ))}
+      </div>
+      <div className="tiles">
+        {SYL_VOWELS.map((ch) => (
+          <button key={ch} data-tile={ch} className={`tile vow ${wrong === ch ? 'wrong' : ''} ${v === ch ? 'used' : ''} ${hintOn && !v && ch === target.v ? 'hint' : ''}`} onClick={() => tap(ch, false)}>{ch}</button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ReadWord({ onRight }: { onRight: (clip: string) => void }) {
+  const { word, options } = useMemo(() => {
+    const w = shuffle(readingWords(6), Math.random)[0];
+    return { word: w, options: pictureOptions(w, Math.random) };
+  }, []);
+  const right = pictureOfWord(word)!;
+  const steps: Step[] = ['c.read_word'];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /><span className="word-card" data-word={word}>{word.toUpperCase()}</span></div>
+      <Choices items={options.map((p) => ({ key: p.id, face: <Pic obj={p} size={96} />, label: p.word }))} answer={right.id} onRight={() => onRight(picClip(right))} />
+    </>
+  );
+}
+
+// ---------------- «Сөз құра» ----------------
+
+const WORD_PLAN = ['build', 'missing', 'build', 'missing', 'build'] as const;
+
+function WordGame({ onWin, onFinish }: GameProps) {
+  const { round, win, total } = useRounds(WORD_PLAN.length, onWin, onFinish);
+  const words = useMemo(() => shuffle(readingWords(5), Math.random), []);
+  const word = words[round % words.length];
+  const pic = pictureOfWord(word)!;
+  return (
+    <div className="stage">
+      <RoundDots round={round} total={total} />
+      {WORD_PLAN[round] === 'build'
+        ? <BuildWord key={round} word={word} pic={pic} onRight={() => void win([picClip(pic)])} />
+        : <MissingLetter key={round} word={word} pic={pic} onRight={() => void win([picClip(pic)])} />}
+    </div>
+  );
+}
+
+function BuildWord({ word, pic, onRight }: { word: string; pic: Picture; onRight: () => void }) {
+  const letters = [...word.toUpperCase()];
+  const tiles = useMemo(() => wordTiles(word, Math.random), [word]);
+  const [filled, setFilled] = useState(0);
+  const [used, setUsed] = useState<number[]>([]);
+  const [wrong, setWrong] = useState<number | null>(null);
+  const errors = useRef(0);
+  const steps: Step[] = ['c.build_word', { pause: 200 }, picClip(pic)];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const tap = (i: number) => {
+    if (filled >= letters.length || used.includes(i)) return;
+    if (tiles[i] !== letters[filled]) {
+      errors.current += 1;
+      setWrong(i);
+      setTimeout(() => setWrong(null), 450);
+      chime('soft');
+      if (errors.current === 3) void audio.play(['c.hint']);
+      return;
+    }
+    chime('pop');
+    const f = filled + 1;
+    setFilled(f);
+    setUsed([...used, i]);
+    if (f >= letters.length) setTimeout(onRight, 300);
+    else { const l = letterOf(tiles[i]); if (l?.nameClip) void audio.play([l.nameClip]); }
+  };
+  const hintIdx = errors.current >= 3 ? tiles.findIndex((t, i) => t === letters[filled] && !used.includes(i)) : -1;
+  return (
+    <>
+      <div className="prompt-row">
+        <Speaker steps={steps} />
+        <button className="picture-card" aria-label={pic.word} onClick={() => void audio.play([picClip(pic)])}><Pic obj={pic} size={88} /></button>
+      </div>
+      <div className="slots" data-word={word}>
+        {letters.map((ch, i) => <span key={i} className={`slot ${i < filled ? 'filled' : ''}`}>{i < filled ? ch : ''}</span>)}
+      </div>
+      <div className="tiles">
+        {tiles.map((ch, i) => (
+          <button key={i} data-tile={ch} className={`tile ${used.includes(i) ? 'used' : ''} ${wrong === i ? 'wrong' : ''} ${hintIdx === i ? 'hint' : ''}`} onClick={() => tap(i)}>{ch}</button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function MissingLetter({ word, pic, onRight }: { word: string; pic: Picture; onRight: () => void }) {
+  const letters = [...word.toUpperCase()];
+  const m = useMemo(() => missingLetter(word, Math.random), [word]);
+  const [done, setDone] = useState(false);
+  const steps: Step[] = ['c.missing_letter'];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row">
+        <Speaker steps={steps} />
+        <button className="picture-card" aria-label={pic.word} onClick={() => void audio.play([picClip(pic)])}><Pic obj={pic} size={88} /></button>
+      </div>
+      <div className="slots" data-word={word}>
+        {letters.map((ch, i) => <span key={i} className={`slot filled ${i === m.pos ? (done ? 'gap ok' : 'gap') : ''}`}>{i === m.pos && !done ? '?' : ch}</span>)}
+      </div>
+      <Choices
+        items={m.options.map((u) => ({ key: u, face: <span className="syl">{u}</span>, label: u }))}
+        answer={letters[m.pos]}
+        onRight={() => { setDone(true); onRight(); }}
+      />
+    </>
+  );
+}
+
+// ---------------- «Есеп» ----------------
+
+const MATH_PLAN = ['add', 'more', 'sub', 'missing', 'add', 'sub'] as const;
+const APPLE = PICTURES.find((p) => p.id === 'apple') ?? PICTURES[0];
+
+function MathGame({ onWin, onFinish, level }: GameProps & { level: number }) {
+  const { round, win, total } = useRounds(MATH_PLAN.length, onWin, onFinish);
+  const max = level >= 3 ? 20 : 10;
+  const t = useMemo(() => mathTask(MATH_PLAN[round], max, Math.random), [round, max]);
+  let steps: Step[];
+  let show: React.ReactNode;
+  if (t.kind === 'add' || t.kind === 'sub') {
+    steps = [numClip(t.a), t.kind === 'add' ? 'p.plus' : 'p.minus', numClip(t.b), 'p.equals'];
+    show = (
+      <div className="equation" data-answer={t.answer}>
+        <span>{t.a}</span><span className="op">{t.kind === 'add' ? '+' : '−'}</span><span>{t.b}</span><span className="op">=</span><span className="q">?</span>
+        {t.a <= 10 && (
+          <div className="eq-pics" aria-hidden="true">
+            {Array.from({ length: t.a }, (_, i) => <span key={`a${i}`} className={t.kind === 'sub' && i >= t.a - t.b ? 'out' : ''}><Pic obj={APPLE} size={30} /></span>)}
+            {t.kind === 'add' && <span className="plus">+</span>}
+            {t.kind === 'add' && Array.from({ length: t.b }, (_, i) => <span key={`b${i}`}><Pic obj={APPLE} size={30} /></span>)}
+          </div>
+        )}
+      </div>
+    );
+  } else if (t.kind === 'more') {
+    steps = ['c.which_more'];
+    show = null;
+  } else {
+    steps = ['c.missing_number'];
+    const seq = (t as { seq: (number | null)[] }).seq;
+    show = <div className="equation seq">{seq.map((v, i) => <span key={i} className={v === null ? 'q' : ''}>{v ?? '?'}</span>)}</div>;
+  }
+  useEffect(() => void audio.play(steps), [round]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="stage">
+      <RoundDots round={round} total={total} />
+      <div className="prompt-row"><Speaker steps={steps} /></div>
+      {show}
+      <Choices
+        key={round}
+        size={t.kind === 'more' ? 'big' : undefined}
+        items={t.options.map((v) => ({ key: String(v), face: <span className="num">{v}</span>, label: String(v) }))}
+        answer={String(t.answer)}
+        onRight={() => void win([numClip(t.answer)])}
+      />
+    </div>
+  );
+}
+
+// ---------------- «Диктант» ----------------
+
+function DictationGame({ known, onWin, onFinish }: GameProps) {
+  const items = useMemo(() => {
+    const letters = shuffle(known.letters.filter((l) => l.strokes.length), Math.random).slice(0, 3);
+    const digits = shuffle(NUMBERS.filter((n) => n.value <= 9 && n.strokes.length && known.numbers.some((k) => k.id === n.id)), Math.random).slice(0, 1);
+    return [...letters, ...digits];
+  }, [known]);
+  const { round, win, total } = useRounds(items.length, onWin, onFinish);
+  const item = items[round];
+  const spec = useMemo(() => ({ uid: `dict-${round}`, type: 'write' as const, showAs: 'write' as const, itemId: item.id, track: item.track, reason: 'review' as const, options: [], seed: round }), [round, item]);
+  return (
+    <div className="stage">
+      <RoundDots round={round} total={total} />
+      <WriteTask key={round} spec={spec} steps={['c.dictation', { pause: 300 }, item.nameClip!]} setReplay={() => {}} onDone={() => void win()} />
     </div>
   );
 }
@@ -132,7 +486,7 @@ function CardFace({ card }: { card: MemoryCard }) {
   );
 }
 
-function MemoryGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
+function MemoryGame({ known, onWin, onFinish }: GameProps) {
   const cards = useMemo(() => memoryCards(known, Math.random), [known]);
   const [open, setOpen] = useState<number[]>([]);
   const [matched, setMatched] = useState<string[]>([]);
@@ -150,6 +504,7 @@ function MemoryGame({ known, onFinish }: { known: Known; onFinish: () => void })
     busy.current = true;
     if (a.pair === b.pair) {
       chime('pop');
+      onWin();
       const item = ITEMS[a.pair];
       if (item.nameClip) void audio.play([item.nameClip]);
       const m = [...matched, a.pair];
@@ -181,7 +536,7 @@ function MemoryGame({ known, onFinish }: { known: Known; onFinish: () => void })
               onClick={() => tap(i)}
               aria-label={shown ? c.value : 'карточка'}
             >
-              {shown ? <CardFace card={c} /> : <img className="mem-back" src="img/botakan.webp" alt="" draggable={false} />}
+              {shown ? <CardFace card={c} /> : <img className="mem-back" src="img/hanshaiym.webp" alt="" draggable={false} />}
             </button>
           );
         })}
@@ -190,11 +545,11 @@ function MemoryGame({ known, onFinish }: { known: Known; onFinish: () => void })
   );
 }
 
-// ---------------- «Ботақанды тамақтандыр» ----------------
+// ---------------- «Ханшайымды тамақтандыр» ----------------
 
 const FEED_ROUNDS = 3;
 
-function FeedGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
+function FeedGame({ known, onWin, onFinish }: GameProps) {
   const targets = useMemo(() => {
     const vals = known.numbers.map((n) => n.value);
     const out: number[] = [];
@@ -228,6 +583,7 @@ function FeedGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
       return;
     }
     busy.current = true;
+    onWin();
     await audio.play([`n.${g}.name`, { pause: 250 }, 'c.thanks']);
     if (round + 1 >= FEED_ROUNDS) onFinish();
     else setRound(round + 1);
@@ -259,7 +615,7 @@ function FeedGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
 const POP_ROUNDS = 4;
 const COLORS = ['#e67a8f', '#7cbf7a', '#5aa9cf', '#f2a65a', '#b9a6e6', '#e8b84a'];
 
-function PopGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
+function PopGame({ known, onWin, onFinish }: GameProps) {
   const rounds = useMemo(() => {
     return Array.from({ length: POP_ROUNDS }, (_, r) => {
       const target = known.letters[(r + Math.floor(Math.random() * known.letters.length)) % known.letters.length];
@@ -295,6 +651,7 @@ function PopGame({ known, onFinish }: { known: Known; onFinish: () => void }) {
       const left = cur.balloons.filter((x, k) => x.kind === 'letter' && x.id === cur.target.id && !next.includes(k)).length;
       if (left === 0) {
         busy.current = true;
+        onWin();
         await audio.play([PRAISE[round % PRAISE.length]]);
         if (round + 1 >= POP_ROUNDS) onFinish();
         else setRound(round + 1);

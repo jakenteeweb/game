@@ -1,5 +1,6 @@
 // Модель прогресса и правила обновления. Чистые функции, без интерфейса и хранилища.
-import { CURRICULUM, RULES, type TaskType } from '../content/curriculum';
+import { RULES, stagesFor, type TaskType } from '../content/curriculum';
+import { ITEMS } from '../content';
 import type { Track } from '../content/types';
 
 export const PROGRESS_VERSION = 1;
@@ -141,7 +142,7 @@ export function applyOutcome(prev: ItemProgress, outcome: Outcome, ctx: ApplyCon
   }
 
   // Этапы: продвигаемся только по текущему этапу программы.
-  const stages = CURRICULUM.stages[p.track];
+  const stages = stagesOf(p);
   const current = stages[p.stage];
   if (current === taskType && p.stagesThisSession < RULES.maxStagesPerSession) {
     const passes = isExposure(taskType) ? outcome.completed : independent;
@@ -188,12 +189,17 @@ export function applyOutcome(prev: ItemProgress, outcome: Outcome, ctx: ApplyCon
   return p;
 }
 
+/** Этапы символа с учётом того, есть ли у него контур для письма. */
+export function stagesOf(p: Pick<ItemProgress, 'track' | 'itemId'>): TaskType[] {
+  return stagesFor(p.track, (ITEMS[p.itemId]?.strokes.length ?? 0) > 0);
+}
+
 export function totalIndependent(p: ItemProgress): number {
   return Object.values(p.skills).reduce((a, s) => a + s.independent, 0);
 }
 
 export function isMastered(p: ItemProgress): boolean {
-  const stages = CURRICULUM.stages[p.track];
+  const stages = stagesOf(p);
   return (
     p.stage >= stages.length &&
     totalIndependent(p) >= RULES.masteryIndependent &&
