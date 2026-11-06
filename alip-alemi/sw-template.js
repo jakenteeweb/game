@@ -5,12 +5,21 @@ const FILES = __FILES__;
 // Установка обновления: код приложения обязателен, остальные файлы — «по возможности».
 // Раньше один недоступный файл срывал всю установку, и телефоны застревали на старой версии.
 const CORE = FILES.filter((f) => f === './' || f === 'index.html' || f.startsWith('assets/'));
+// Каждый файл скачиваем заново: адрес с номером версии и cache: 'reload' — мимо HTTP-кэша браузера.
+// Иначе обновление могло сохранить старую копию (GitHub Pages разрешает браузеру держать файлы
+// 10 минут), и заменённая запись (например, название буквы) оставалась старой.
+async function store(c, f) {
+  const url = f + (f.includes('?') ? '&' : '?') + 'v=' + CACHE;
+  const res = await fetch(new Request(url, { cache: 'reload' }));
+  if (!res.ok) throw new Error(f + ': ' + res.status);
+  await c.put(f, res);
+}
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE)
       .then(async (c) => {
-        await c.addAll(CORE);
-        await Promise.allSettled(FILES.filter((f) => !CORE.includes(f)).map((f) => c.add(f)));
+        await Promise.all(CORE.map((f) => store(c, f)));
+        await Promise.allSettled(FILES.filter((f) => !CORE.includes(f)).map((f) => store(c, f)));
       })
       .then(() => self.skipWaiting()),
   );
