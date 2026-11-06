@@ -316,3 +316,8 @@ table.clips td, table.clips th { border-bottom: 1px solid #eee5da; padding: 8px 
 .write-result.no { color: var(--ink-soft); }
 
 .nudge { animation: bounce .6s ease; transform-box: fill-box; }
+
+/* Варианты-картинки и карточка буквы для «Қай сөз … әрпінен басталады?» */
+.choice.pic img { width: 62% !important; height: 62% !important; }
+.letter-card { font-family: var(--glyph); font-weight: 800; font-size: 72px; color: var(--fox-dark); padding: 6px 28px; }
+.balloon .b img { width: 60% !important; height: 60% !important; }

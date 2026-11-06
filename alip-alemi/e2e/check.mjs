@@ -97,6 +97,7 @@ async function drawTouch(svgSel, strokes, viewW = 100, map = (p) => p) {
 }
 let scribbleTested = false;
 const writes = [];
+const wordMatches = [];
 
 /** Проходит занятие, отвечая правильно. mistakes — сколько раз ошибиться в первом задании с выбором. */
 const shot = new Set();
@@ -121,6 +122,10 @@ async function playSession(track, { mistakes = 0, maxTasks = 30 } = {}) {
     }
     if (type === 'intro' || type === 'numIntro') {
       await page.locator('[aria-label="Әрі қарай"]').click({ timeout: 20000 });
+    } else if (type === 'wordMatch') {
+      const ans = await page.locator('.choices').getAttribute('data-answer');
+      await page.locator(`.choice[data-opt="${ans}"]`).click();
+      wordMatches.push(item);
     } else if (['recognize', 'listen', 'findDigit', 'matchDigit'].includes(type)) {
       if (mistakes > 0) {
         const wrong = page.locator(`.choice:not([data-opt="${item}"]):not(.gone)`);
@@ -244,6 +249,7 @@ assert(off.length > 0, `без интернета приложение и уро
 await ctx.setOffline(false);
 
 log('Жаз!:', writes.join(', '));
+log('Қай сөз…:', wordMatches.join(', '));
 assert(writes[0] === 'scribble-rejected' && writes.length >= 2, '«Жаз!»: каракуля не засчитана, написанный пальцем символ распознан');
 assert(await page.evaluate(() => window.__maxPlaying) <= 1, 'звук ни разу не наложился');
 assert(errors.length === 0, 'нет ошибок JavaScript: ' + errors.join('; '));

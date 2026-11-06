@@ -13,7 +13,7 @@ export function stateOf(p: ItemProgress | undefined): ItemState {
 const STAGE_NAMES: Record<string, string> = {
   intro: 'танысу', recognize: 'тану', listen: 'тыңдап тану', trace: 'бойлап сызу', write: 'өзі жазу', balloons: 'бекіту ойыны',
   check: 'үзілістен кейінгі тексеру', numIntro: 'танысу', count: 'санау', basket: 'себет', chooseGroup: 'топты таңдау',
-  findDigit: 'цифрды табу', matchDigit: 'санға цифр табу',
+  findDigit: 'цифрды табу', matchDigit: 'санға цифр табу', wordMatch: 'әріп пен сурет',
 };
 
 export function stageLabel(p: ItemProgress): string {

@@ -4,6 +4,7 @@ import { CURRICULUM, RULES } from '../content/curriculum';
 import { applyOutcome, choiceCount, isDue, newProgress, type ItemProgress, type Outcome } from './progress';
 import { adaptAfter, availableItems, buildOptions, knownItems, planSession, type PlanInput, type TaskSpec } from './session';
 import { mulberry32 } from './rng';
+import { PICTURE_BY_ID } from '../content/pictures';
 
 const DAY = 86400000;
 const OK: Outcome = { completed: true, errors: 0, hinted: false };
@@ -31,26 +32,38 @@ describe('варианты ответа', () => {
   it('всегда содержат правильный ответ и только знакомые символы', () => {
     const rng = mulberry32(7);
     let prog: Prog = {};
+    const seenTypes = new Set<string>();
     for (let s = 0; s < 12; s++) {
       const pl = plan(prog, s, s * DAY, s + 3);
       for (const t of pl.tasks) {
         const known = new Set([...knownItems('letters', prog).map((i) => i.id), t.itemId]);
-        if (t.options.length) {
+        if (t.showAs === 'wordMatch') {
+          // Ровно одна картинка начинается на нужную букву — это и есть ответ.
+          const letter = ITEMS[t.itemId].track === 'letters' ? (ITEMS[t.itemId] as { upper: string }).upper : '';
+          const firsts = t.options.map((o) => PICTURE_BY_ID[o.slice(4)].first);
+          expect(firsts.filter((f) => f === letter)).toHaveLength(1);
+          expect(t.options.length).toBeGreaterThanOrEqual(3);
+        } else if (t.options.length) {
           expect(t.options).toContain(t.itemId);
           for (const o of t.options) {
-            if (!o.startsWith('shape:')) expect(known.has(o), `${o} незнаком в задании ${t.showAs}`).toBe(true);
+            if (!o.startsWith('shape:') && !o.startsWith('pic:')) expect(known.has(o), `${o} незнаком в задании ${t.showAs}`).toBe(true);
           }
+          if (ITEMS[t.itemId].track === 'letters' && t.reason !== 'retry' && t.showAs !== 'balloons') expect(t.options.length).toBeGreaterThanOrEqual(3);
         }
+        seenTypes.add(t.showAs);
         prog = run(t, prog, rng() < 0.8 ? OK : HINT, s * DAY, s);
       }
     }
+    expect(seenTypes.has('wordMatch'), [...seenTypes].join(',')).toBe(true);
   });
 
-  it('первая буква: второй вариант — фигура, а не незнакомая буква', () => {
-    const opts = buildOptions(ITEMS.L_a, [], 2, mulberry32(1));
+  it('первая буква: остальные варианты — картинки, а не незнакомые буквы', () => {
+    const opts = buildOptions(ITEMS.L_a, [], 3, mulberry32(1));
     expect(opts).toContain('L_a');
-    expect(opts.filter((o) => o.startsWith('shape:'))).toHaveLength(1);
+    expect(opts.filter((o) => o.startsWith('pic:'))).toHaveLength(2);
+    expect(opts).not.toContain('pic:apple'); // картинка самого слова-примера не подсказывает ответ
   });
+
 });
 
 describe('подсказки и ошибки', () => {

@@ -3,7 +3,7 @@ import { audio, chime } from '../audio/audio';
 import type { LetterItem } from '../content';
 import { mulberry32, shuffle } from '../engine/rng';
 import { Pic } from './objects';
-import { SpeakerButton, itemOf, optionLabel, retryClip, useInstruction, useTapGuard, type TaskProps } from './common';
+import { OptionFace, SpeakerButton, itemOf, optionLabel, retryClip, useInstruction, useTapGuard, type TaskProps } from './common';
 
 const COLORS = ['#e67a8f', '#7cbf7a', '#5aa9cf', '#f2a65a', '#b9a6e6', '#e8b84a'];
 
@@ -84,7 +84,7 @@ export function BalloonsTask({ spec, onDone, setReplay }: TaskProps) {
               onClick={() => tap(i)}
               aria-label={l.text}
             >
-              <div className={`b ${l.shape ? 'shape' : ''}`} style={{ background: p.color }}>{l.text}</div>
+              <div className={`b ${l.shape ? 'shape' : ''}`} style={{ background: p.color }}>{l.pic ? <OptionFace opt={opt} size={48} /> : l.text}</div>
               <div className="string" />
             </button>
           );

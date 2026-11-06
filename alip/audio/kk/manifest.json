@@ -116,6 +116,12 @@
   "n.3.write": "n.3.write.mp3",
   "n.4.write": "n.4.write.mp3",
   "n.5.write": "n.5.write.mp3",
-  "c.you_wrote": "c.you_wrote.mp3"
+  "c.you_wrote": "c.you_wrote.mp3",
+  "l.a.match": "l.a.match.mp3",
+  "l.ae.match": "l.ae.match.mp3",
+  "l.q.match": "l.q.match.mp3",
+  "l.n.match": "l.n.match.mp3",
+  "l.t.match": "l.t.match.mp3",
+  "l.ue.match": "l.ue.match.mp3"
  }
 }

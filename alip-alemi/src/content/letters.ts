@@ -114,6 +114,7 @@ export const LETTERS: LetterItem[] = KAZAKH_ALPHABET.map((l) => {
   item.words = [word];
   item.introClip = addClip({ id: `${p}.intro`, kind: 'instruction', text: `Бұл – ${l.upper} әрпі.`, ttsAllowed: true });
   item.findClip = addClip({ id: `${p}.find`, kind: 'instruction', text: `${l.upper} әрпін тап.`, ttsAllowed: true });
+  item.matchClip = addClip({ id: `${p}.match`, kind: 'instruction', text: `Қай сөз ${l.upper} әрпінен басталады?`, ttsAllowed: true });
   item.writeClip = addClip({ id: `${p}.write`, kind: 'instruction', text: `${l.upper} әрпін жаз.`, ttsAllowed: true });
   item.balloonsClip = addClip({ id: `${p}.balloons`, kind: 'instruction', text: `${l.upper} әрпі жазылған шарларды бас.`, ttsAllowed: true });
   item.confusable = prep.confusable;
