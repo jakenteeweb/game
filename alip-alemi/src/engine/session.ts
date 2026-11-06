@@ -253,7 +253,8 @@ export function planSession(input: PlanInput): SessionPlan {
   for (const item of learning) {
     const p = P(item);
     const stage = stagesOf(track)[p.stage];
-    if (!stage || isExposure(stage)) continue;
+    // Пропускаем только знакомство; «пересчёт» тоже этап, иначе число навсегда застрянет на нём.
+    if (!stage || stage === 'intro' || stage === 'numIntro') continue;
     if (stage === 'check' && (p.introducedSession ?? sessionIndex) >= sessionIndex) continue;
     if (head.some((t) => t.itemId === item.id && t.type === stage)) continue;
     push(middle, makeTask(stage, item, 'learn', input));

@@ -202,4 +202,13 @@ describe('числа', () => {
     }
     expect(Object.values(prog).filter((p) => p!.stage > 0).length).toBeGreaterThan(1);
   });
+  it('число не застревает на пересчёте, если после знакомства ребёнок вышел', () => {
+    // Знакомство с 1 прошло, а пересчёт — нет (ребёнок закрыл занятие).
+    let prog: Prog = {};
+    const pl = plan(prog, 0, 0, 3, 'numbers');
+    prog = run(pl.tasks.find((t) => t.type === 'numIntro')!, prog, OK, 0, 0);
+    expect(prog.N_1!.stage).toBe(1);
+    const next = plan(prog, 1, DAY, 4, 'numbers');
+    expect(next.tasks.some((t) => t.itemId === 'N_1' && t.type === 'count')).toBe(true);
+  });
 });

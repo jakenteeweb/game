@@ -23,6 +23,8 @@ export interface Profile {
   lastSessionAt?: number;
   /** Сад: награды за участие и старание. */
   garden: string[];
+  /** День последней награды за каждую игру «Ойнап үйрен». */
+  gameRewards?: Record<string, string>;
 }
 
 export interface SessionLog {

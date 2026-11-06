@@ -55,7 +55,9 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
       if (p.reviewOnly && Object.keys(progress.current).length > 0) greet.push({ pause: 300 }, 'c.review_day');
       replay.current = greet;
       await audio.play(greet);
-      if (alive) setPhase(p.tasks.length ? 'task' : 'end');
+      if (!alive) return;
+      if (p.tasks.length) setPhase('task');
+      else void finish(); // нечего показывать (например, все уроки скрыты) — корректно закрываем занятие
     })();
     return () => {
       alive = false;
@@ -65,14 +67,11 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
   }, []);
 
   // Перед заданием: короткая связка «Знакомимся с новым» / «Помнишь?».
-  const [lead, setLead] = useState<string | null>(null);
+  // Вычисляется сразу при отрисовке, чтобы задание не мелькало и не обрывалось до связки.
   const task: TaskSpec | undefined = plan?.tasks[index];
-  useEffect(() => {
-    if (phase !== 'task' || !task) return;
-    if (task.reason === 'new' && (task.type === 'intro' || task.type === 'numIntro')) setLead(track === 'letters' ? 'c.new_letter' : 'c.new_number');
-    else if (task.reason === 'return') setLead('c.remember');
-    else setLead(null);
-  }, [task?.uid, phase]);
+  const lead: string | null = phase !== 'task' || !task ? null
+    : task.reason === 'new' && (task.type === 'intro' || task.type === 'numIntro') ? (track === 'letters' ? 'c.new_letter' : 'c.new_number')
+    : task.reason === 'return' ? 'c.remember' : null;
   const [leadDone, setLeadDone] = useState<string | null>(null);
   useEffect(() => {
     if (!lead || !task) return;
@@ -81,14 +80,21 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead, task?.uid]);
   const showTask = phase === 'task' && task && (!lead || leadDone === task.uid);
 
   const finish = async () => {
     if (finished.current) return;
+    const profile = profileRef.current;
+    if (!profile) {
+      // Занятие ещё не загрузилось — просто выходим.
+      audio.stop();
+      app.go({ name: 'home' });
+      return;
+    }
     finished.current = true;
     audio.stop();
-    const profile = profileRef.current!;
     // Награда — за участие и старание, а не за безошибочность.
     const got = done.current > 0 ? nextRewards(profile.garden, 1 + (effort.current ? 1 : 0)) : [];
     const updated = { ...profile, garden: [...profile.garden, ...got] };
@@ -107,7 +113,8 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
   };
 
   const onDone = async (outcome: Outcome) => {
-    if (!plan || !task || busy) return;
+    // Ответ, пришедший после выхода из занятия, не сохраняем.
+    if (!plan || !task || busy || finished.current) return;
     setBusy(true);
     const item = ITEMS[task.itemId];
     const prev = progress.current[item.id] ?? newProgress(profileRef.current!.id, item.id, item.track);
@@ -117,7 +124,7 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
     progress.current = { ...progress.current, [item.id]: next };
     await db.putProgress(next);
     done.current += 1;
-    if (log.current) void db.putSession({ ...log.current, tasksDone: done.current });
+    if (log.current && !finished.current) void db.putSession({ ...log.current, tasksDone: done.current });
     if (outcome.errors > 0 && outcome.completed) effort.current = true;
     const nextPlan = adaptAfter(plan, index, task, outcome, { progress: progress.current, rng: Math.random, canHear: app.canHear, track });
 
@@ -126,6 +133,7 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
       const clip = isIndependent(outcome) || Math.random() < 0.5 ? PRAISE[Math.floor(Math.random() * PRAISE.length)] : 'c.effort';
       await audio.play([clip]);
     }
+    if (finished.current) return;
     setPlan(nextPlan);
     setBusy(false);
     if (index + 1 >= nextPlan.tasks.length) await finish();

@@ -14,10 +14,42 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/**
+ * Safari (iPhone) запрашивает аудио частями (заголовок Range) и не играет звук,
+ * если в ответ приходит весь файл целиком. Отдаём нужный кусок из кэша с кодом 206.
+ */
+async function rangeResponse(request, response) {
+  const range = request.headers.get('range');
+  const m = /bytes=(\d*)-(\d*)/.exec(range || '');
+  if (!m) return response;
+  const buf = await response.arrayBuffer();
+  const size = buf.byteLength;
+  let start = m[1] === '' ? size - Number(m[2]) : Number(m[1]);
+  let end = m[1] !== '' && m[2] !== '' ? Number(m[2]) : size - 1;
+  start = Math.max(0, start);
+  end = Math.min(size - 1, end);
+  if (start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+  return new Response(buf.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type': response.headers.get('Content-Type') || 'audio/mpeg',
+      'Content-Range': `bytes ${start}-${end}/${size}`,
+      'Content-Length': String(end - start + 1),
+      'Accept-Ranges': 'bytes',
+    },
+  });
+}
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
+  if (e.request.headers.has('range')) {
+    e.respondWith(
+      caches.match(e.request.url, { ignoreSearch: true }).then((hit) => (hit ? rangeResponse(e.request, hit) : fetch(e.request))),
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((hit) => {
       if (hit) return hit;
