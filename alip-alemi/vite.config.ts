@@ -16,7 +16,10 @@ function offlineServiceWorker(): Plugin {
         for (const name of readdirSync(dir)) {
           const full = join(dir, name);
           if (statSync(full).isDirectory()) walk(full);
-          else if (name !== '.gitkeep') publicFiles.push(relative(publicDir, full).split('\\').join('/'));
+          else if (name.startsWith('.')) {
+            // GitHub Pages не отдаёт файлы с точкой в начале имени — такой файл сорвал бы установку обновления.
+            throw new Error(`В public есть файл с точкой в начале имени: ${relative(publicDir, full)}`);
+          } else publicFiles.push(relative(publicDir, full).split('\\').join('/'));
         }
       };
       walk(publicDir);
