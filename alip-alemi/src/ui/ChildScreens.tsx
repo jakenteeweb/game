@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio, music } from '../audio/audio';
 import { useApp } from '../state';
-import { Fox } from './Fox';
+import { Mascot } from './Mascot';
 import { gardenSpot } from './garden';
 
 /** Кнопка для взрослых: нужно удерживать 2 секунды, одно касание не сработает. */
@@ -103,7 +103,7 @@ export function Welcome() {
     <div className="screen">
       <div className="topbar"><span className="spacer" /><ParentEntry /></div>
       <div className="center">
-        <Fox size="big" />
+        <Mascot size="big" />
         <h1 style={{ margin: 0, fontSize: 34 }}>Әріп әлемі</h1>
         <p className="muted" style={{ maxWidth: 360, fontSize: 16 }}>
           Ересектерге: баланың профилін ашу үшін ⚙️ батырмасын екі секунд басып тұрыңыз.
@@ -119,7 +119,7 @@ export function ProfilePicker() {
     <div className="screen">
       <div className="topbar"><span className="spacer" /><ParentEntry /></div>
       <div className="center">
-        <Fox />
+        <Mascot />
         <div className="profiles">
           {app.profiles.map((p) => (
             <button key={p.id} className="big-btn profile-btn" onClick={() => void app.selectProfile(p.id)}>
@@ -159,7 +159,7 @@ export function Home() {
         <ParentEntry />
       </div>
       <div className="home-hero">
-        <Fox size="big" />
+        <Mascot size="big" />
       </div>
       <div className="home-tracks">
         <button className="big-btn track-card letters" onClick={() => start('letters')} aria-label="Әріптер">

@@ -4,7 +4,7 @@ import { CLIPS, ITEMS, RETRY, glyph, type Item } from '../content';
 import { RULES } from '../content/curriculum';
 import type { Outcome } from '../engine/progress';
 import type { TaskSpec } from '../engine/session';
-import { useSpeaking } from '../ui/Fox';
+import { useSpeaking } from '../ui/Mascot';
 
 export interface TaskProps {
   spec: TaskSpec;

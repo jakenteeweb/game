@@ -76,13 +76,14 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 
 .avatar { font-size: 34px; }
 
-/* ------- Лисёнок ------- */
-.fox { width: 120px; height: 120px; }
-.fox.small { width: 72px; height: 72px; }
-.fox.big { width: 170px; height: 170px; }
-.fox.talking .mouth { animation: talk .28s ease-in-out infinite alternate; transform-origin: 50% 70%; }
-.fox.bounce { animation: bounce .6s ease; }
-@keyframes talk { from { transform: scaleY(.5); } to { transform: scaleY(1.2); } }
+/* ------- Ботақан ------- */
+.mascot { position: relative; display: inline-block; width: 130px; height: 130px; flex: none; }
+.mascot.small { width: 64px; height: 64px; }
+.mascot.big { width: 210px; height: 210px; }
+.mascot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity .25s ease; pointer-events: none; }
+.mascot.talking { animation: nod .7s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+.mascot.bounce { animation: bounce .6s ease; }
+@keyframes nod { from { transform: rotate(-2deg) translateY(0); } to { transform: rotate(2deg) translateY(-3px); } }
 @keyframes bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
 
 /* ------- Занятие ------- */
@@ -305,3 +306,5 @@ table.clips td, table.clips th { border-bottom: 1px solid #eee5da; padding: 8px 
 }
 .write-result.ok { color: var(--leaf-dark); background: #e5f5e2; }
 .write-result.no { color: var(--ink-soft); }
+
+.nudge { animation: bounce .6s ease; transform-box: fill-box; }

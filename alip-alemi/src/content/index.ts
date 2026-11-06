@@ -5,9 +5,9 @@ import { NUMBERS, NUMBER_CLIPS } from './numbers';
 export * from './types';
 export { LETTERS, NUMBERS };
 
-/** Общие фразы помощника Түлкі. Всё — на казахском; статус: черновик. */
+/** Общие фразы помощника Ботақана. Всё — на казахском; статус: черновик. */
 const COMMON: Clip[] = [
-  { id: 'c.hello', kind: 'instruction', text: 'Сәлем! Мен Түлкімін. Бүгін бірге ойнайық!', ttsAllowed: true },
+  { id: 'c.hello', kind: 'instruction', text: 'Сәлем! Мен Ботақанмын. Бүгін бірге ойнайық!', ttsAllowed: true },
   { id: 'c.review_day', kind: 'instruction', text: 'Бүгін білгенімізді қайталайық.', ttsAllowed: true },
   { id: 'c.new_letter', kind: 'instruction', text: 'Енді жаңа әріппен танысайық!', ttsAllowed: true },
   { id: 'c.new_number', kind: 'instruction', text: 'Енді жаңа санмен танысайық!', ttsAllowed: true },
