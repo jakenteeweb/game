@@ -12,13 +12,13 @@ export const CURRICULUM = {
 
   /** Этапы изучения одного символа. Индекс этапа = сколько этапов пройдено. */
   stages: {
-    letters: ['intro', 'recognize', 'listen', 'trace', 'balloons', 'check'],
-    numbers: ['numIntro', 'count', 'basket', 'chooseGroup', 'trace', 'findDigit', 'check'],
+    letters: ['intro', 'recognize', 'listen', 'trace', 'balloons', 'write', 'check'],
+    numbers: ['numIntro', 'count', 'basket', 'chooseGroup', 'trace', 'findDigit', 'write', 'check'],
   } as Record<Track, TaskType[]>,
 };
 
 export type TaskType =
-  | 'intro' | 'recognize' | 'listen' | 'trace' | 'balloons' | 'check'
+  | 'intro' | 'recognize' | 'listen' | 'trace' | 'balloons' | 'write' | 'check'
   | 'numIntro' | 'count' | 'basket' | 'chooseGroup' | 'findDigit' | 'matchDigit';
 
 /** Пороги и интервалы — все настраиваемые. */

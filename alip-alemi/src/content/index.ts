@@ -19,6 +19,7 @@ const COMMON: Clip[] = [
   { id: 'c.count_intro', kind: 'instruction', text: 'Санайық:', ttsAllowed: true },
   { id: 'c.match', kind: 'instruction', text: 'Мұнда неше зат бар? Цифрын тап.', ttsAllowed: true },
   { id: 'c.hint', kind: 'feedback', text: 'Міне, осы.', ttsAllowed: true },
+  { id: 'c.you_wrote', kind: 'feedback', text: 'Сен мынаны жаздың:', ttsAllowed: true },
   { id: 'c.slow', kind: 'feedback', text: 'Асықпайық. Тыңдап алайық.', ttsAllowed: true },
   { id: 'c.retry1', kind: 'feedback', text: 'Қайта байқап көрейік.', ttsAllowed: true },
   { id: 'c.retry2', kind: 'feedback', text: 'Тағы бір рет байқап көрейік.', ttsAllowed: true },

@@ -8,6 +8,7 @@ import { useApp } from '../state';
 import { LetterIntro, NumberIntro } from '../tasks/IntroTask';
 import { ChoiceTask } from '../tasks/ChoiceTask';
 import { TraceTask } from '../tasks/TraceTask';
+import { WriteTask } from '../tasks/WriteTask';
 import { BalloonsTask } from '../tasks/BalloonsTask';
 import { BasketTask, ChooseGroupTask, CountTask } from '../tasks/NumberTasks';
 import { Fox } from './Fox';
@@ -178,6 +179,7 @@ function TaskView(props: { spec: TaskSpec; onDone: (o: Outcome) => void; setRepl
     case 'numIntro': return <NumberIntro {...props} />;
     case 'recognize': case 'listen': case 'findDigit': case 'matchDigit': return <ChoiceTask {...props} />;
     case 'trace': return <TraceTask {...props} />;
+    case 'write': return <WriteTask {...props} />;
     case 'balloons': return <BalloonsTask {...props} />;
     case 'count': return <CountTask {...props} />;
     case 'basket': return <BasketTask {...props} />;

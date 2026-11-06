@@ -84,6 +84,20 @@ async function traceTouch(svgSel) {
   }
 }
 
+async function drawTouch(svgSel, strokes, viewW = 100, map = (p) => p) {
+  const box = await page.locator(svgSel).boundingBox();
+  const toPx = ([x, y]) => ({ x: box.x + (x / viewW) * box.width, y: box.y + (y / viewW) * box.height });
+  for (const s of strokes) {
+    const pts = [];
+    for (let i = 1; i < s.length; i++) for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push(map([s[i - 1][0] + (s[i][0] - s[i - 1][0]) * t + Math.sin(i + k) * 1.5, s[i - 1][1] + (s[i][1] - s[i - 1][1]) * t])); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [toPx(pts[0])] });
+    for (const p of pts.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [toPx(p)] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+}
+let scribbleTested = false;
+const writes = [];
+
 /** Проходит занятие, отвечая правильно. mistakes — сколько раз ошибиться в первом задании с выбором. */
 const shot = new Set();
 async function playSession(track, { mistakes = 0, maxTasks = 30 } = {}) {
@@ -119,6 +133,24 @@ async function playSession(track, { mistakes = 0, maxTasks = 30 } = {}) {
       for (let k = 0; k < await bs.count(); k++) { await bs.nth(k).click({ force: true }); await page.waitForTimeout(150); }
     } else if (type === 'trace') {
       await traceTouch('svg[aria-label="trace"]');
+    } else if (type === 'write') {
+      const sel = 'svg[aria-label="write"]';
+      if (!scribbleTested) {
+        scribbleTested = true;
+        await drawTouch(sel, [Array.from({ length: 30 }, (_, i) => [50 + 30 * Math.cos(i / 4.6), 50 + 30 * Math.sin(i / 4.6)])]);
+        await page.locator('[aria-label="Дайын"]').click();
+        await page.locator('.write-result.no').waitFor({ timeout: 5000 });
+        writes.push('scribble-rejected');
+        await page.waitForTimeout(4000);
+      }
+      const strokes = JSON.parse(await page.locator(sel).getAttribute('data-strokes'));
+      await drawTouch(sel, strokes, 100, ([x, y]) => [x * 0.7 + 12, y * 0.7 + 10]);
+      await page.locator('[aria-label="Дайын"]').click();
+      if (!(await page.locator('.write-result.ok').waitFor({ timeout: 5000 }).then(() => true, () => false))) {
+        await page.screenshot({ path: '/tmp/claude-0/-workspace/528ba19f-b723-5dad-9bb1-8e17374d4b19/scratchpad/write-fail.png' });
+        throw new Error('написанное не распознано: ' + item + ' ' + (await page.locator('.write-result').textContent().catch(() => '')));
+      }
+      writes.push(item);
     } else if (type === 'count') {
       const objs = page.locator('.field .obj');
       for (let k = 0; k < await objs.count(); k++) await objs.nth(k).click();
@@ -211,6 +243,8 @@ const off = await playSession('letters');
 assert(off.length > 0, `без интернета приложение и уроки работают (${off.length} заданий)`);
 await ctx.setOffline(false);
 
+log('Жаз!:', writes.join(', '));
+assert(writes[0] === 'scribble-rejected' && writes.length >= 2, '«Жаз!»: каракуля не засчитана, написанный пальцем символ распознан');
 assert(await page.evaluate(() => window.__maxPlaying) <= 1, 'звук ни разу не наложился');
 assert(errors.length === 0, 'нет ошибок JavaScript: ' + errors.join('; '));
 await browser.close();
