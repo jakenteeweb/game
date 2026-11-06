@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { initUpdates } from './updates';
 import './styles.css';
 
 /** Вместо белого экрана при сбое — понятное сообщение и кнопка перезагрузки. */
@@ -43,9 +44,5 @@ window.addEventListener('error', (e) => {
   if (el && !el.childElementCount) root.render(<Crash message={String(e.message)} />);
 });
 
-// Офлайн-режим: service worker кэширует приложение и уроки.
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
+// Офлайн-режим и автообновление: service worker кэширует приложение и уроки.
+initUpdates();
