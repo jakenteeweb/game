@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { audio, chime } from '../audio/audio';
 import type { NumberItem } from '../content';
 import { mulberry32 } from '../engine/rng';
@@ -15,8 +15,15 @@ export function CountTask({ spec, onDone, setReplay }: TaskProps) {
   const pos = useMemo(() => layout(n, spec.seed, { base: 72 }), [n, spec.seed]);
   const [order, setOrder] = useState<number[]>([]);
   const done = useRef(false);
-  const steps = ['c.count'];
+  const steps = n === 0 ? [`n.0.total`] : ['c.count'];
   useInstruction(steps, setReplay, [spec.uid]);
+  // Ноль: считать нечего — показываем пустое поле, говорим «барлығы — нөл» и идём дальше (не застреваем).
+  useEffect(() => {
+    if (n !== 0) return;
+    const t = window.setTimeout(() => { if (!done.current) { done.current = true; onDone({ completed: true, errors: 0, hinted: true }); } }, 2600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spec.uid]);
 
   const tap = (i: number) => {
     if (done.current || order.includes(i)) return;

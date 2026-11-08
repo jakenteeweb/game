@@ -21,9 +21,10 @@ export function setSafeToReload(safe: boolean) {
 export function initUpdates() {
   if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
   // Если service worker уже управлял страницей, смена управляющего = пришла новая версия.
-  const hadController = !!navigator.serviceWorker.controller;
+  let hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController) return; // первая установка — перезагружать незачем
+    // Первая установка — перезагружать незачем. Но следующие версии в этом же запуске применяем.
+    if (!hadController) { hadController = true; return; }
     updateReady = true;
     maybeReload();
   });

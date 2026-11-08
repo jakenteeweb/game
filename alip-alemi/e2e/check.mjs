@@ -232,8 +232,8 @@ log('Числа 2:', n2.map((t) => `${t.type}:${t.item}`).join(' '));
 const starsOf = async () => parseInt(await page.locator('.stars-pill').getAttribute('aria-label'), 10);
 const starsBefore = await starsOf();
 await page.locator('[aria-label="Ойындар"]').click();
-assert((await page.locator('.game-card.locked').count()) === 0 && (await page.locator('.game-card').count()) === 7, 'все 7 игр открыты');
-for (const game of ['syl', 'word', 'math', 'dict', 'memory', 'feed', 'pop']) {
+assert((await page.locator('.game-card.locked').count()) === 0 && (await page.locator('.game-card').count()) === 8, 'все 8 игр открыты');
+for (const game of ['dyb', 'syl', 'word', 'math', 'dict', 'memory', 'feed', 'pop']) {
   await page.locator(`[data-game="${game}"]`).click();
   const end = page.locator('[aria-label="Ойындар"]');
   for (let guard = 0; guard < 60 && !(await end.count()); guard++) {
@@ -256,17 +256,21 @@ for (const game of ['syl', 'word', 'math', 'dict', 'memory', 'feed', 'pop']) {
       const bs = page.locator(`.balloon[data-opt="${target}"]:not(.popped)`);
       while (await bs.count()) { await bs.first().click({ force: true }); await page.waitForTimeout(300); }
       await page.waitForTimeout(1500);
+    } else if (await page.locator('.choice.right').count()) {
+      continue; // раунд решён, звучит похвала — ждём следующий
     } else if (await page.locator('.choices[data-answer]').count()) {
       const ans = await page.locator('.choices[data-answer]').getAttribute('data-answer');
       const opts = page.locator('.choices .choice');
       // Одна ошибка в каждом задании «Есеп» — проверяем, что игра не ломается.
-      if (game === 'math') {
+      if (game === 'math' || game === 'dyb') {
         const wrong = page.locator(`.choices .choice:not([data-opt="${ans}"])`);
         if (await wrong.count()) { await wrong.first().click(); await page.waitForTimeout(600); }
       }
       await page.locator(`.choices [data-opt="${ans}"]`).click();
       void opts;
       await page.waitForTimeout(2200);
+    } else if ((await page.locator('.slots').count()) && !(await page.locator('.slots .slot:not(.filled), .slots .slot.gap:not(.ok)').count())) {
+      continue; // слово или слог собраны, звучит похвала
     } else if (await page.locator('.slots[data-syl]').count()) {
       const syl = await page.locator('.slots[data-syl]').getAttribute('data-syl');
       await page.locator(`.tile.cons[data-tile="${syl[0]}"]`).click(); await page.waitForTimeout(500);
@@ -298,6 +302,13 @@ assert(/[2-9]-деңгей/.test(await page.locator('.stars-pill').textContent()
 await enterParent();
 await page.locator('.tabs button', { hasText: 'Үлгерім' }).click();
 const learnCells = await page.locator('.sym-cell.learn, .sym-cell.ok').count();
+assert((await page.locator('.readiness .ready-row').count()) === 6, 'отчёт «Мектепке дайындық»: 6 навыков');
+for (const area of ['letters', 'sounds', 'reading', 'math', 'writing']) {
+  const st = await page.locator(`.ready-row[data-area="${area}"]`).getAttribute('data-status');
+  if (st === 'none') throw new Error(`навык ${area} не отмечен после игр`);
+}
+assert(true, 'после уроков и игр в отчёте отмечены буквы, звуки, чтение, счёт и письмо');
+if (process.env.SHOT_DIR) await page.locator('.readiness').screenshot({ path: `${process.env.SHOT_DIR}/readiness.png` });
 assert(learnCells >= 3, `у Айко отмечены изучаемые символы (${learnCells})`);
 await page.locator('.seg button', { hasText: 'Бота' }).click();
 await page.waitForTimeout(400);

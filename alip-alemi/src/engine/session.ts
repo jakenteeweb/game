@@ -127,7 +127,7 @@ export function buildBalloons(target: Item, known: Item[], rng: Rng, targets = 2
 }
 
 function stagesOf(item: Item) {
-  return stagesFor(item.track, item.strokes.length > 0);
+  return stagesFor(item.track, item.strokes.length > 0, item.track === 'numbers' ? item.value : undefined);
 }
 
 /** Тип, который реально увидит ребёнок для данного запланированного типа. */
@@ -150,6 +150,7 @@ function reviewTypes(item: Item, p: ItemProgress, canHear: (i: Item) => boolean)
     // Цифра как знак и число как количество — с самого начала в разных заданиях.
     types = [...new Set<TaskType>([...types, 'chooseGroup', ...(p.stage >= 3 ? (['findDigit', 'matchDigit'] as TaskType[]) : [])])];
     if (item.value === 1) types = types.filter((t) => t !== 'basket' || p.stage < 4);
+    if (item.value > 8) types = types.filter((t) => t !== 'basket');
   }
   if (!canHear(item)) types = types.filter((t) => t !== 'listen');
   // Буква ↔ картинка слова: после того как ребёнок узнаёт букву.
@@ -176,11 +177,13 @@ export function makeTask(
     spec.object = pick(COUNT_OBJECTS_REF, rng);
     if (showAs === 'basket') {
       spec.object = pick(BASKET_OBJECTS_REF, rng);
-      spec.pool = Math.min(value + 2 + Math.floor(rng() * 2), 8);
+      spec.pool = Math.max(value + 1, Math.min(value + 2 + Math.floor(rng() * 2), 8));
     }
     if (showAs === 'chooseGroup') {
       const nGroups = Math.min(3, Math.max(2, n));
-      const others = shuffle([1, 2, 3, 4, 5, 6].filter((v) => v !== value && Math.abs(v - value) <= 3), rng).slice(0, nGroups - 1);
+      // Соседние количества (±3) из 0–20 — так у каждого числа есть с чем сравнить.
+      const near = Array.from({ length: 21 }, (_, v) => v).filter((v) => v !== value && Math.abs(v - value) <= 3);
+      const others = shuffle(near, rng).slice(0, nGroups - 1);
       spec.groups = shuffle([value, ...others], rng);
     }
   }
@@ -341,7 +344,9 @@ export function adaptAfter(
   const retried = plan.tasks.slice(0, index + 1).filter((t) => t.itemId === task.itemId && t.reason === 'retry').length;
   if (already || retried >= 1) return plan;
   const item = ITEMS[task.itemId];
-  const easy = makeTask(easierType(task.showAs), item, 'retry', input, { maxChoices: 2 });
+  const easier = easierType(task.showAs);
+  // Для 0 пересчитывать нечего — вместо пересчёта найти цифру.
+  const easy = makeTask(easier === 'count' && item.track === 'numbers' && item.value === 0 ? 'findDigit' : easier, item, 'retry', input, { maxChoices: 2 });
   const tasks = plan.tasks.slice();
   // «Позже, после нескольких других заданий»: через 2 задания или в конце.
   const pos = Math.min(index + 3, tasks.length);

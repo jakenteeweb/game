@@ -20,10 +20,16 @@ export const CURRICULUM = {
   } as Record<Track, TaskType[]>,
 };
 
-/** Этапы конкретного символа: без контура (числа 10–20) нет обведения и письма пальцем. */
-export function stagesFor(track: Track, hasStrokes: boolean): TaskType[] {
-  const all = CURRICULUM.stages[track];
-  return hasStrokes ? all : all.filter((t) => t !== 'trace' && t !== 'write');
+/**
+ * Этапы конкретного символа: без контура (числа 10–20) нет обведения и письма пальцем;
+ * для 0 нет пересчёта (нечего считать), для чисел больше 8 нет корзины (в неё помещается 8 предметов).
+ */
+export function stagesFor(track: Track, hasStrokes: boolean, value?: number): TaskType[] {
+  let all = CURRICULUM.stages[track];
+  if (!hasStrokes) all = all.filter((t) => t !== 'trace' && t !== 'write');
+  if (value === 0) all = all.filter((t) => t !== 'count');
+  if (value !== undefined && value > 8) all = all.filter((t) => t !== 'basket');
+  return all;
 }
 
 export type TaskType =

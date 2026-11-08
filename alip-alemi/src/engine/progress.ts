@@ -191,7 +191,8 @@ export function applyOutcome(prev: ItemProgress, outcome: Outcome, ctx: ApplyCon
 
 /** Этапы символа с учётом того, есть ли у него контур для письма. */
 export function stagesOf(p: Pick<ItemProgress, 'track' | 'itemId'>): TaskType[] {
-  return stagesFor(p.track, (ITEMS[p.itemId]?.strokes.length ?? 0) > 0);
+  const item = ITEMS[p.itemId];
+  return stagesFor(p.track, (item?.strokes.length ?? 0) > 0, item?.track === 'numbers' ? item.value : undefined);
 }
 
 export function totalIndependent(p: ItemProgress): number {

@@ -6,7 +6,13 @@ import { PICTURES, type Picture } from '../content/pictures';
 import { SYLLABLES, READING_WORDS, type Syllable } from '../content/syllables';
 import type { ItemProgress } from '../engine/progress';
 
-export type GameId = 'memory' | 'feed' | 'pop' | 'syl' | 'word' | 'math' | 'dict';
+export type GameId = 'memory' | 'feed' | 'pop' | 'syl' | 'word' | 'math' | 'dict' | 'dyb';
+
+/** Навык для отчёта «Мектепке дайындық»: какая игра что тренирует. */
+export type SkillArea = 'sounds' | 'reading' | 'math' | 'writing' | 'letters';
+export const GAME_AREA: Record<GameId, SkillArea> = {
+  dyb: 'sounds', syl: 'reading', word: 'reading', math: 'math', feed: 'math', dict: 'writing', pop: 'letters', memory: 'letters',
+};
 
 export interface Known {
   letters: LetterItem[];
@@ -112,7 +118,7 @@ export function missingLetter(word: string, rng: () => number): { pos: number; o
   const pos = Math.floor(rng() * letters.length);
   const right = letters[pos];
   const item = letterOf(right);
-  const conf = (item?.confusable ?? []).map((id) => (ITEMS[id] as LetterItem)?.upper).filter((u): u is string => !!u && u !== right);
+  const conf = (item?.confusable ?? []).filter((u) => u !== right && !!letterOf(u) && letterOf(u)!.status !== 'stub'); // confusable — сами буквы, не id
   const rest = LETTERS.filter((l) => l.status !== 'stub' && l.upper !== right).map((l) => l.upper);
   const wrong = [...new Set([...shuffle(conf, rng).slice(0, 1), ...shuffle(rest, rng)])].filter((u) => u !== right).slice(0, 2);
   return { pos, options: shuffle([right, ...wrong], rng) };
@@ -159,4 +165,55 @@ export function mathTask(kind: 'add' | 'sub' | 'more' | 'missing', max: number, 
 
 export function pickSyllable(rng: () => number): Syllable {
   return pick(SYLLABLES, rng);
+}
+
+// ---------------- «Дыбыстар»: звуковой анализ, как в школе ----------------
+// Только однозначные буквы: И, У, Й, Ю, Я, Ё, Э, Ъ, Ь в школе разбирают отдельно — в заданиях их нет.
+
+export const CLEAR_VOWELS = 'аәеоөұүыі';
+export const CLEAR_CONSONANTS = 'бвгғджзкқлмнңпрстфхһцчшщ';
+export const isVowel = (ch: string) => CLEAR_VOWELS.includes(ch.toLowerCase());
+const isClear = (w: string) => [...w].every((ch) => CLEAR_VOWELS.includes(ch) || CLEAR_CONSONANTS.includes(ch));
+
+/** Буквы для «дауысты ма, дауыссыз ба?». */
+export const SOUND_LETTERS: LetterItem[] = LETTERS.filter((l) => l.status !== 'stub' && (CLEAR_VOWELS.includes(l.lower) || CLEAR_CONSONANTS.includes(l.lower)));
+
+/** Слова с картинкой и только однозначными буквами. */
+export function soundWords(maxLen = 6): Picture[] {
+  return PICTURES.filter((p) => p.word.length <= maxLen && isClear(p.word));
+}
+
+/** Число слогов = число гласных (для слов из soundWords). */
+export const syllableCount = (word: string) => [...word].filter((ch) => CLEAR_VOWELS.includes(ch)).length;
+
+/** Звуковая схема: «д» — гласный (красный), «к» — согласный (синий). Пример: «нан» → «кдк». */
+export const schemaOf = (word: string) => [...word].map((ch) => (CLEAR_VOWELS.includes(ch) ? 'д' : 'к')).join('');
+
+/** Три схемы: правильная + две отличающиеся одним-двумя кружками той же длины. */
+export function schemaOptions(word: string, rng: () => number): string[] {
+  const right = schemaOf(word);
+  const flip = (s: string, i: number) => s.slice(0, i) + (s[i] === 'д' ? 'к' : 'д') + s.slice(i + 1);
+  const cands = new Set<string>();
+  for (let i = 0; i < right.length; i++) {
+    cands.add(flip(right, i));
+    for (let j = i + 1; j < right.length; j++) cands.add(flip(flip(right, i), j));
+  }
+  cands.delete(right);
+  return shuffle([right, ...shuffle([...cands], rng).slice(0, 2)], rng);
+}
+
+/** Варианты для «первый / последний звук»: правильная буква + две другие (похожие — в приоритете). */
+export function soundOptions(word: string, pos: 'first' | 'last', rng: () => number): string[] {
+  const ch = (pos === 'first' ? word[0] : word[word.length - 1]).toUpperCase();
+  const conf = (letterOf(ch)?.confusable ?? []).filter((u) => u !== ch && SOUND_LETTERS.some((l) => l.upper === u) && !word.toUpperCase().includes(u));
+  const other = SOUND_LETTERS.map((l) => l.upper).filter((u) => u !== ch && !word.toUpperCase().includes(u));
+  const wrong = [...new Set([...shuffle(conf, rng).slice(0, 1), ...shuffle(other, rng)])].filter((u) => u !== ch).slice(0, 2);
+  return shuffle([ch, ...wrong], rng);
+}
+
+/** Варианты числа слогов: 1–4, правильный всегда есть. */
+export function syllableCountOptions(word: string): number[] {
+  const n = syllableCount(word);
+  const lo = Math.max(1, Math.min(n - 1, 2));
+  return [lo, lo + 1, lo + 2].includes(n) ? [lo, lo + 1, lo + 2] : [n - 1, n, n + 1].filter((v) => v >= 1);
 }

@@ -217,6 +217,14 @@
   "w.suitcase": "w.suitcase.mp3",
   "w.top": "w.top.mp3",
   "w.yacht": "w.yacht.mp3",
-  "w.zebra": "w.zebra.mp3"
+  "w.zebra": "w.zebra.mp3",
+  "c.consonant": "c.consonant.mp3",
+  "c.first_sound": "c.first_sound.mp3",
+  "c.how_many_syl": "c.how_many_syl.mp3",
+  "c.last_sound": "c.last_sound.mp3",
+  "c.schema": "c.schema.mp3",
+  "c.sounds": "c.sounds.mp3",
+  "c.vowel": "c.vowel.mp3",
+  "c.vowel_or_cons": "c.vowel_or_cons.mp3"
  }
 }
