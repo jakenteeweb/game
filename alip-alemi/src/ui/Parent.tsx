@@ -4,7 +4,7 @@ import { ALL_ITEMS, CLIPS, ITEMS, LETTERS, NUMBERS, glyph, type Clip, type Item,
 import type { SessionLength } from '../content/curriculum';
 import type { ItemProgress } from '../engine/progress';
 import { availableItems } from '../engine/session';
-import { dueSoon, observations, stageLabel, stateOf } from '../engine/insights';
+import { dueSoon, observations, readiness, stageLabel, stateOf, type ReadinessRow } from '../engine/insights';
 import { db, newId, type Profile, type SessionLog } from '../storage/db';
 import { canHearId, useApp } from '../state';
 import { useAudioVersion } from './Mascot';
@@ -200,6 +200,12 @@ function ProgressTab() {
         </div>
       </div>
 
+      <ReadinessCard rows={readiness(progress, profile.skills ?? {}, {
+        // Цель к школе — все подготовленные буквы и числа 0–20, а не только уже открытые ребёнку.
+        letters: LETTERS.filter((l) => app.statusOf(l) !== 'stub').length,
+        numbers: NUMBERS.filter((n) => app.statusOf(n) !== 'stub').length,
+      })} />
+
       {(['letters', 'numbers'] as const).map((track) => {
         const items = availableItems(track, progress, app.isAvailable);
         const all = track === 'letters' ? LETTERS : NUMBERS;
@@ -248,7 +254,7 @@ function ProgressTab() {
       <button className="btn danger" onClick={() => setReset(true)}>{profile.nickname}: үлгерімді тазарту</button>
       {reset && (
         <Confirm
-          text={`«${profile.nickname}» үлгерімін толық тазарту керек пе? Профиль сақталады, әріптер, сандар мен бақ қайтадан басталады.`}
+          text={`«${profile.nickname}» үлгерімін толық тазарту керек пе? Профиль сақталады, әріптер, сандар, жұлдыздар, бақ және «Мектепке дайындық» қайтадан басталады.`}
           action="Тазарту"
           onNo={() => setReset(false)}
           onYes={async () => {
@@ -407,5 +413,37 @@ function ClipRow({ clip }: { clip: Clip }) {
         </div>
       </td>
     </tr>
+  );
+}
+
+const READY_LABEL: Record<ReadinessRow['status'], string> = { ready: 'меңгерді', learning: 'үйреніп жүр', none: 'әлі басталмады' };
+const READY_TIP: Record<string, string> = {
+  letters: '«Әріптер» сабағы күн сайын 5–7 минут.',
+  numbers: '«Сандар» сабағы және «Ханшайымды тамақтандыр» ойыны.',
+  sounds: '«Дыбыстар» ойыны: дауысты/дауыссыз, буын саны, дыбыстық сызба.',
+  reading: '«Буын» мен «Сөз құра» ойындары.',
+  math: '«Есеп» ойыны: қосу, алу, салыстыру.',
+  writing: '«Диктант» ойыны және сабақтағы «Жаз!» тапсырмасы.',
+};
+
+/** «Мектепке дайындық»: что ребёнок уже умеет и чем заняться дальше. Без оценок и сравнений. */
+function ReadinessCard({ rows }: { rows: ReadinessRow[] }) {
+  const next = rows.filter((r) => r.status !== 'ready');
+  return (
+    <div className="card readiness">
+      <h3 style={{ marginTop: 0 }}>Мектепке дайындық</h3>
+      {rows.map((r) => (
+        <div key={r.key} className="ready-row" data-area={r.key} data-status={r.status}>
+          <span className={`badge ${r.status}`}>{READY_LABEL[r.status]}</span>
+          <span className="what"><strong>{r.title}</strong><small>{r.detail}</small></span>
+        </div>
+      ))}
+      {next.length > 0 && (
+        <p className="muted" style={{ marginBottom: 0 }}>
+          <b>Не істеу керек:</b> {next.slice(0, 3).map((r) => READY_TIP[r.key]).join(' ')}
+        </p>
+      )}
+      <p className="muted" style={{ marginBottom: 0 }}>«Меңгерді» — ойындарда кемінде 8 раунд, оның 80%-ы қатесіз; әріптер мен сандарда — 80%-ы меңгерілген.</p>
+    </div>
   );
 }

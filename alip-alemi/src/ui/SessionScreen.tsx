@@ -13,7 +13,7 @@ import { BalloonsTask } from '../tasks/BalloonsTask';
 import { BasketTask, ChooseGroupTask, CountTask } from '../tasks/NumberTasks';
 import { Mascot } from './Mascot';
 import { nextRewards } from './garden';
-import { giveStars } from './LevelToast';
+import { giveStars, levelUpSteps } from './LevelToast';
 
 type Phase = 'greet' | 'task' | 'end';
 
@@ -134,9 +134,9 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
     if (!isExposure(task.showAs)) {
       setPraise((x) => x + 1);
       // Звезда — за самостоятельный правильный ответ. За ошибки ничего не отнимаем.
-      if (isIndependent(outcome)) void giveStars(profileRef.current!.id, 1, app.refresh);
+      const levelUp = isIndependent(outcome) ? (await giveStars(profileRef.current!.id, 1, app.refresh)).levelUp : false;
       const clip = isIndependent(outcome) || Math.random() < 0.5 ? PRAISE[Math.floor(Math.random() * PRAISE.length)] : 'c.effort';
-      await audio.play([clip]);
+      await audio.play([clip, ...levelUpSteps(levelUp)]);
     }
     if (finished.current) return;
     setPlan(nextPlan);

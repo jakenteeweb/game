@@ -27,6 +27,14 @@ export interface Profile {
   gameRewards?: Record<string, string>;
   /** Звёзды за правильные ответы и выигранные раунды; каждые 20 звёзд — новый уровень. */
   stars?: number;
+  /** Итоги игр по навыкам для отчёта «Мектепке дайындық»: раунды без ошибок / всего раундов. */
+  skills?: Partial<Record<string, SkillTally>>;
+}
+
+export interface SkillTally {
+  ok: number;
+  tries: number;
+  at: number;
 }
 
 export interface SessionLog {
@@ -181,9 +189,10 @@ export const db = {
       }
       t.oncomplete = () => resolve();
       t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error);
     });
     const p = await this.getProfile(profileId);
-    if (p) await this.putProfile({ ...p, sessionCount: 0, lastSessionAt: undefined, garden: [] });
+    if (p) await this.putProfile({ ...p, sessionCount: 0, lastSessionAt: undefined, garden: [], stars: 0, skills: {}, gameRewards: {} });
   },
 
   // Прогресс

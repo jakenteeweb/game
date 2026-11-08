@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ITEMS, glyph, type Item } from '../content';
 import { CURRICULUM, RULES } from '../content/curriculum';
 import { applyOutcome, choiceCount, isDue, newProgress, type ItemProgress, type Outcome } from './progress';
-import { adaptAfter, availableItems, buildOptions, knownItems, planSession, type PlanInput, type TaskSpec } from './session';
+import { adaptAfter, availableItems, buildOptions, knownItems, makeTask, planSession, type PlanInput, type TaskSpec } from './session';
+import { stagesOf } from './progress';
 import { mulberry32 } from './rng';
 import { PICTURE_BY_ID } from '../content/pictures';
 
@@ -212,5 +213,26 @@ describe('числа', () => {
     expect(prog.N_1!.stage).toBe(1);
     const next = plan(prog, 1, DAY, 4, 'numbers');
     expect(next.tasks.some((t) => t.itemId === 'N_1' && t.type === 'count')).toBe(true);
+  });
+
+  it('ни одно числовое задание 0–20 не может зависнуть', () => {
+    const input = { track: 'numbers' as const, progress: {}, rng: mulberry32(3), canHear };
+    for (let v = 0; v <= 20; v++) {
+      const item = ITEMS[`N_${v}`];
+      const st = stagesOf({ track: 'numbers', itemId: item.id });
+      if (v === 0) expect(st).not.toContain('count');
+      if (v > 8) expect(st).not.toContain('basket');
+      for (let k = 0; k < 20; k++) {
+        if (v <= 8) {
+          const b = makeTask('basket', item, 'new', input);
+          expect(b.pool!, `корзина для ${v}`).toBeGreaterThan(v);
+          expect(b.pool!).toBeLessThanOrEqual(10);
+        }
+        const g = makeTask('chooseGroup', item, 'new', input);
+        expect(g.groups!.length, `группы для ${v}`).toBeGreaterThanOrEqual(2);
+        expect(g.groups!.filter((x) => x === v)).toHaveLength(1);
+        expect(new Set(g.groups).size).toBe(g.groups!.length);
+      }
+    }
   });
 });

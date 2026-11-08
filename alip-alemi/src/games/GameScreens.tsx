@@ -6,22 +6,28 @@ import { db } from '../storage/db';
 import { useApp } from '../state';
 import { Mascot } from '../ui/Mascot';
 import { nextRewards } from '../ui/garden';
-import { giveStars } from '../ui/LevelToast';
+import { giveStars, levelUpSteps } from '../ui/LevelToast';
 import { Pic } from '../tasks/objects';
 import { retryClip } from '../tasks/common';
 import { WriteTask } from '../tasks/WriteTask';
 import { levelOf } from '../engine/stars';
 import { SYL_CONSONANTS, SYL_VOWELS } from '../content/syllables';
 import {
-  knownFor, letterOf, mathTask, memoryCards, missingLetter, pickSyllable, pictureOfWord, pictureOptions, readingWords,
-  rewardDue, shuffle, syllableOptions, todayKey, wordTiles, type GameId, type Known, type MemoryCard,
+  GAME_AREA, SOUND_LETTERS, isVowel, knownFor, letterOf, mathTask, memoryCards, missingLetter, pickSyllable, pictureOfWord,
+  pictureOptions, readingWords, rewardDue, schemaOf, schemaOptions, shuffle, soundOptions, soundWords, syllableCountOptions,
+  syllableOptions, todayKey, wordTiles, type GameId, type Known, type MemoryCard,
 } from './games';
 
+/** Ошибки в текущем раунде — для отчёта «Мектепке дайындық» (раунд без ошибок / с ошибками). */
+let roundMisses = 0;
+const noteMiss = () => { roundMisses += 1; };
+
 const GAMES: { id: GameId; icon: string; title: string; color: string }[] = [
+  { id: 'dyb', icon: '🔴', title: 'Дыбыстар', color: 'pink' },
   { id: 'syl', icon: '🔤', title: 'Буын', color: 'blue' },
   { id: 'word', icon: '🧩', title: 'Сөз құра', color: 'green' },
   { id: 'math', icon: '➕', title: 'Есеп', color: 'orange' },
-  { id: 'dict', icon: '✍️', title: 'Диктант', color: 'pink' },
+  { id: 'dict', icon: '✍️', title: 'Диктант', color: 'yellow' },
   { id: 'memory', icon: '🃏', title: 'Жұбын тап', color: 'yellow' },
   { id: 'pop', icon: '🎈', title: 'Шарды жар', color: 'blue' },
   { id: 'feed', icon: '🍎', title: 'Ханшайымды тамақтандыр', color: 'green' },
@@ -71,7 +77,7 @@ export function GamesScreen() {
 interface GameProps {
   known: Known;
   /** Раунд выигран: +1 звезда. */
-  onWin: () => void;
+  onWin: () => Promise<boolean>;
   onFinish: () => void;
 }
 
@@ -83,12 +89,23 @@ export function GameScreen({ game }: { game: GameId }) {
   const [reward, setReward] = useState<string | null>(null);
   const finishing = useRef(false);
 
-  const onWin = () => {
-    if (app.profile) void giveStars(app.profile.id, 1, app.refresh);
+  const alive = useRef(true);
+  useEffect(() => {
+    roundMisses = 0;
+    return () => { alive.current = false; };
+  }, []);
+  /** Раунд выигран: звезда и итог для отчёта. Возвращает «новый уровень». */
+  const onWin = async () => {
+    // В «Жұбын тап» открывать несовпадающие карточки — часть игры, это не ошибка.
+    const clean = game === 'memory' || roundMisses === 0;
+    roundMisses = 0;
+    if (!app.profile) return false;
+    return (await giveStars(app.profile.id, 1, app.refresh, { area: GAME_AREA[game], clean })).levelUp;
   };
 
   const finish = async () => {
-    if (finishing.current) return;
+    // Ребёнок уже вышел из игры (✕ во время последней похвалы) — не завершаем за кадром.
+    if (finishing.current || !alive.current) return;
     finishing.current = true;
     audio.stop();
     const profile = app.profile && (await db.getProfile(app.profile.id));
@@ -138,6 +155,7 @@ export function GameScreen({ game }: { game: GameId }) {
       {game === 'word' && <WordGame {...props} />}
       {game === 'math' && <MathGame {...props} level={levelOf(app.profile?.stars ?? 0)} />}
       {game === 'dict' && <DictationGame {...props} />}
+      {game === 'dyb' && <SoundGame {...props} />}
     </div>
   );
 }
@@ -145,15 +163,15 @@ export function GameScreen({ game }: { game: GameId }) {
 // ---------------- Общие детали раундовых игр ----------------
 
 /** Раунды: после победы — похвала, звезда и следующий раунд. */
-function useRounds(total: number, onWin: () => void, onFinish: () => void) {
+function useRounds(total: number, onWin: () => Promise<boolean>, onFinish: () => void) {
   const [round, setRound] = useState(0);
   const busy = useRef(false);
   const win = async (extra: Step[] = []) => {
     if (busy.current) return;
     busy.current = true;
-    onWin();
     chime('pop');
-    await audio.play([...extra, PRAISE[Math.floor(Math.random() * PRAISE.length)]]);
+    const levelUp = await onWin();
+    await audio.play([...extra, PRAISE[Math.floor(Math.random() * PRAISE.length)], ...levelUpSteps(levelUp)]);
     busy.current = false;
     if (round + 1 >= total) onFinish();
     else setRound(round + 1);
@@ -183,6 +201,7 @@ function useGameChoice(answer: string, onRight: () => void) {
       return;
     }
     errors.current += 1;
+    noteMiss();
     setWrong(key);
     setTimeout(() => setWrong(null), 450);
     chime('soft');
@@ -199,7 +218,7 @@ function Speaker({ steps }: { steps: Step[] }) {
   return <button className="icon-btn speaker" aria-label="Тыңдау" onClick={() => void audio.play(steps)}>🔊</button>;
 }
 
-function Choices({ items, answer, onRight, size }: { items: { key: string; face: React.ReactNode; label: string }[]; answer: string; onRight: () => void; size?: 'big' }) {
+function Choices({ items, answer, onRight, size }: { items: { key: string; face: React.ReactNode; label: string }[]; answer: string; onRight: () => void; size?: 'big' | 'wide' }) {
   const { tap, cls } = useGameChoice(answer, onRight);
   return (
     <div className={`choices n${items.length} ${size ?? ''}`} data-answer={answer}>
@@ -262,6 +281,7 @@ function SylBuild({ onRight }: { onRight: (clip: string) => void }) {
     const ok = isC ? ch === target.c : ch === target.v;
     if (!ok) {
       errors.current += 1;
+      noteMiss();
       setWrong(ch);
       setTimeout(() => setWrong(null), 450);
       chime('soft');
@@ -345,6 +365,7 @@ function BuildWord({ word, pic, onRight }: { word: string; pic: Picture; onRight
     if (filled >= letters.length || used.includes(i)) return;
     if (tiles[i] !== letters[filled]) {
       errors.current += 1;
+      noteMiss();
       setWrong(i);
       setTimeout(() => setWrong(null), 450);
       chime('soft');
@@ -408,7 +429,8 @@ const APPLE = PICTURES.find((p) => p.id === 'apple') ?? PICTURES[0];
 
 function MathGame({ onWin, onFinish, level }: GameProps & { level: number }) {
   const { round, win, total } = useRounds(MATH_PLAN.length, onWin, onFinish);
-  const max = level >= 3 ? 20 : 10;
+  // Сложность фиксируется при входе: новый уровень посреди игры не подменяет решённый пример.
+  const [max] = useState(() => (level >= 3 ? 20 : 10));
   const t = useMemo(() => mathTask(MATH_PLAN[round], max, Math.random), [round, max]);
   let steps: Step[];
   let show: React.ReactNode;
@@ -465,7 +487,7 @@ function DictationGame({ known, onWin, onFinish }: GameProps) {
   return (
     <div className="stage">
       <RoundDots round={round} total={total} />
-      <WriteTask key={round} spec={spec} steps={['c.dictation', { pause: 300 }, item.nameClip!]} setReplay={() => {}} onDone={() => void win()} />
+      <WriteTask key={round} spec={spec} steps={['c.dictation', { pause: 300 }, item.nameClip!]} setReplay={() => {}} onDone={(o) => { if (o.errors > 0 || o.hinted) noteMiss(); void win(); }} />
     </div>
   );
 }
@@ -504,9 +526,9 @@ function MemoryGame({ known, onWin, onFinish }: GameProps) {
     busy.current = true;
     if (a.pair === b.pair) {
       chime('pop');
-      onWin();
       const item = ITEMS[a.pair];
-      if (item.nameClip) void audio.play([item.nameClip]);
+      void Promise.all([onWin(), item.nameClip ? audio.play([item.nameClip]) : Promise.resolve(true)])
+        .then(([levelUp]) => levelUp && void audio.play(['c.level_up']));
       const m = [...matched, a.pair];
       setTimeout(() => {
         setMatched(m);
@@ -583,8 +605,8 @@ function FeedGame({ known, onWin, onFinish }: GameProps) {
       return;
     }
     busy.current = true;
-    onWin();
-    await audio.play([`n.${g}.name`, { pause: 250 }, 'c.thanks']);
+    const levelUp = await onWin();
+    await audio.play([`n.${g}.name`, { pause: 250 }, 'c.thanks', ...levelUpSteps(levelUp)]);
     if (round + 1 >= FEED_ROUNDS) onFinish();
     else setRound(round + 1);
   };
@@ -651,14 +673,15 @@ function PopGame({ known, onWin, onFinish }: GameProps) {
       const left = cur.balloons.filter((x, k) => x.kind === 'letter' && x.id === cur.target.id && !next.includes(k)).length;
       if (left === 0) {
         busy.current = true;
-        onWin();
-        await audio.play([PRAISE[round % PRAISE.length]]);
+        const levelUp = await onWin();
+        await audio.play([PRAISE[round % PRAISE.length], ...levelUpSteps(levelUp)]);
         if (round + 1 >= POP_ROUNDS) onFinish();
         else setRound(round + 1);
       }
       return;
     }
     setWrong(i);
+    noteMiss();
     chime('soft');
     setTimeout(() => setWrong(null), 450);
   };
@@ -686,5 +709,114 @@ function PopGame({ known, onWin, onFinish }: GameProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ---------------- «Дыбыстар»: звуковой анализ ----------------
+
+const DYB_PLAN = ['vc', 'syl', 'first', 'schema', 'vc', 'last', 'syl', 'schema'] as const;
+
+function Schema({ s }: { s: string }) {
+  return (
+    <span className="schema" aria-hidden="true">
+      {[...s].map((c, i) => <i key={i} className={c === 'д' ? 'v' : 'c'} />)}
+    </span>
+  );
+}
+
+function SoundGame({ onWin, onFinish }: GameProps) {
+  const { round, win, total } = useRounds(DYB_PLAN.length, onWin, onFinish);
+  const kind = DYB_PLAN[round];
+  const words = useMemo(() => shuffle(soundWords(6), Math.random), []);
+  const word = words[round % words.length];
+  return (
+    <div className="stage">
+      <RoundDots round={round} total={total} />
+      {kind === 'vc' && <VowelOrConsonant key={round} onRight={(s) => void win(s)} />}
+      {kind === 'syl' && <SyllableCount key={round} pic={word} onRight={(s) => void win(s)} />}
+      {(kind === 'first' || kind === 'last') && <EdgeSound key={round} pic={word} pos={kind} onRight={(s) => void win(s)} />}
+      {kind === 'schema' && <SoundSchema key={round} pic={shuffle(soundWords(5), Math.random)[0]} onRight={(s) => void win(s)} />}
+    </div>
+  );
+}
+
+function PicButton({ pic }: { pic: Picture }) {
+  return <button className="picture-card" aria-label={pic.word} onClick={() => void audio.play([picClip(pic)])}><Pic obj={pic} size={88} /></button>;
+}
+
+function VowelOrConsonant({ onRight }: { onRight: (s: Step[]) => void }) {
+  const l = useMemo(() => shuffle(SOUND_LETTERS, Math.random)[0], []);
+  const v = isVowel(l.lower);
+  const steps: Step[] = [l.nameClip!, { pause: 300 }, 'c.vowel_or_cons'];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row">
+        <Speaker steps={steps} />
+        <button className="picture-card letter-card" aria-label={l.upper} data-letter={l.upper} onClick={() => void audio.play([l.nameClip!])}>{l.upper}</button>
+      </div>
+      <Choices
+        size="big"
+        items={[
+          { key: 'v', face: <span className="vc"><i className="vc-dot v" /><small>дауысты</small></span>, label: 'дауысты' },
+          { key: 'c', face: <span className="vc"><i className="vc-dot c" /><small>дауыссыз</small></span>, label: 'дауыссыз' },
+        ]}
+        answer={v ? 'v' : 'c'}
+        onRight={() => onRight([l.nameClip!, v ? 'c.vowel' : 'c.consonant'])}
+      />
+    </>
+  );
+}
+
+function SyllableCount({ pic, onRight }: { pic: Picture; onRight: (s: Step[]) => void }) {
+  const opts = useMemo(() => syllableCountOptions(pic.word), [pic]);
+  const n = [...pic.word].filter((ch) => isVowel(ch)).length;
+  const steps: Step[] = ['c.how_many_syl', { pause: 300 }, picClip(pic)];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /><PicButton pic={pic} /></div>
+      <Choices
+        items={opts.map((v) => ({ key: String(v), face: <span className="num">{v}</span>, label: String(v) }))}
+        answer={String(n)}
+        onRight={() => onRight([picClip(pic), numClip(n)])}
+      />
+    </>
+  );
+}
+
+function EdgeSound({ pic, pos, onRight }: { pic: Picture; pos: 'first' | 'last'; onRight: (s: Step[]) => void }) {
+  const opts = useMemo(() => soundOptions(pic.word, pos, Math.random), [pic, pos]);
+  const right = (pos === 'first' ? pic.word[0] : pic.word[pic.word.length - 1]).toUpperCase();
+  const steps: Step[] = [pos === 'first' ? 'c.first_sound' : 'c.last_sound', { pause: 300 }, picClip(pic)];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const name = letterOf(right)?.nameClip;
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /><PicButton pic={pic} /></div>
+      <Choices
+        items={opts.map((u) => ({ key: u, face: <span className="syl">{u}</span>, label: u }))}
+        answer={right}
+        onRight={() => onRight(name ? [name] : [])}
+      />
+    </>
+  );
+}
+
+function SoundSchema({ pic, onRight }: { pic: Picture; onRight: (s: Step[]) => void }) {
+  const opts = useMemo(() => schemaOptions(pic.word, Math.random), [pic]);
+  const steps: Step[] = ['c.schema', { pause: 300 }, picClip(pic)];
+  useEffect(() => void audio.play(steps), []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <div className="prompt-row"><Speaker steps={steps} /><PicButton pic={pic} /></div>
+      <div className="schema-legend"><span><i className="vc-dot v" /> дауысты</span><span><i className="vc-dot c" /> дауыссыз</span></div>
+      <Choices
+        size="wide"
+        items={opts.map((sch) => ({ key: sch, face: <Schema s={sch} />, label: sch }))}
+        answer={schemaOf(pic.word)}
+        onRight={() => onRight([picClip(pic)])}
+      />
+    </>
   );
 }

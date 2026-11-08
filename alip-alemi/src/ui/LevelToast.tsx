@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
-import { audio, chime } from '../audio/audio';
-import { awardStars, levelOf } from '../engine/stars';
+import { chime } from '../audio/audio';
+import { awardStars, levelOf, type SkillResult } from '../engine/stars';
 
 type Listener = (level: number) => void;
 const listeners = new Set<Listener>();
 
 /** Дать звёзды; при новом уровне — праздничная плашка и фраза «Жаңа деңгей!». */
-export async function giveStars(profileId: string, n: number, refresh: () => Promise<void>): Promise<number> {
-  const r = await awardStars(profileId, n);
+/**
+ * Дать звёзды; при новом уровне — праздничная плашка. Фразу «Жаңа деңгей!» проигрывает вызывающий
+ * в своей очереди (после похвалы) — иначе фразы обрывают друг друга.
+ */
+export async function giveStars(profileId: string, n: number, refresh: () => Promise<void>, skill?: SkillResult): Promise<{ stars: number; levelUp: boolean }> {
+  const r = await awardStars(profileId, n, skill);
   await refresh();
   if (r.levelUp) {
     for (const l of listeners) l(levelOf(r.stars));
     chime('tada');
-    void audio.play(['c.level_up']);
   }
-  return r.stars;
+  return r;
 }
+
+/** Хвост очереди фраз для нового уровня. */
+export const levelUpSteps = (levelUp: boolean) => (levelUp ? [{ pause: 250 }, 'c.level_up'] : []);
 
 export function LevelToast() {
   const [level, setLevel] = useState<number | null>(null);

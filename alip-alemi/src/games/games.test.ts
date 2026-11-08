@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newProgress, type ItemProgress } from '../engine/progress';
-import { knownFor, mathTask, memoryCards, missingLetter, pictureOfWord, pictureOptions, readingWords, rewardDue, syllableOptions, wordTiles, letterOf } from './games';
+import { schemaOf, schemaOptions, soundOptions, soundWords, syllableCount, syllableCountOptions, SOUND_LETTERS, isVowel, knownFor, mathTask, memoryCards, missingLetter, pictureOfWord, pictureOptions, readingWords, rewardDue, syllableOptions, wordTiles, letterOf } from './games';
 import { mulberry32 } from '../engine/rng';
 import { CLIPS } from '../content';
 import { READING_WORDS, SYLLABLES } from '../content/syllables';
@@ -72,5 +72,38 @@ describe('игры', () => {
         }
       }
     }
+  });
+
+  it('«Дыбыстар»: звуковой анализ как в школе', () => {
+    expect(schemaOf('нан')).toBe('кдк');
+    expect(schemaOf('алма')).toBe('дккд');
+    expect(syllableCount('балық')).toBe(2);
+    expect(syllableCount('доп')).toBe(1);
+    // В заданиях нет неоднозначных букв (И, У, Й, Ю, Я, Ё, Э).
+    for (const l of SOUND_LETTERS) expect('ИУЙЮЯЁЭЪЬ'.includes(l.upper), l.upper).toBe(false);
+    expect(isVowel('Ә')).toBe(true);
+    expect(isVowel('Қ')).toBe(false);
+    const words = soundWords(6);
+    expect(words.length).toBeGreaterThan(12);
+    const rng = mulberry32(11);
+    for (let i = 0; i < 300; i++) {
+      const w = words[i % words.length].word;
+      expect(/[иуйюяёэъь]/.test(w), w).toBe(false);
+      const sch = schemaOptions(w, rng);
+      expect(sch).toContain(schemaOf(w));
+      expect(new Set(sch).size).toBe(sch.length);
+      expect(sch.length).toBeGreaterThanOrEqual(2);
+      for (const x of sch) expect(x).toHaveLength(w.length);
+      for (const pos of ['first', 'last'] as const) {
+        const o = soundOptions(w, pos, rng);
+        const right = (pos === 'first' ? w[0] : w[w.length - 1]).toUpperCase();
+        expect(o.filter((x) => x === right)).toHaveLength(1);
+        expect(new Set(o).size).toBe(3);
+      }
+      const c = syllableCountOptions(w);
+      expect(c).toContain(syllableCount(w));
+      expect(c.every((v) => v >= 1)).toBe(true);
+    }
+    for (const w of ['ай', 'ит']) expect(words.some((p) => p.word === w)).toBe(false);
   });
 });
