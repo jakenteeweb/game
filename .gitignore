@@ -1,0 +1,51 @@
+# Ключи, пароли и токены — никогда не сохраняем в истории
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+*secret*
+*credential*
+*token*.json
+
+# Аккаунты и сессии входа — личные данные, не в историю
+users.json
+sessions.json
+*.session
+
+# Сырые записи голоса и личные фото — только на этом компьютере
+# (в приложении — готовые озвучки из alip-alemi/public)
+*.m4a
+*.wav
+uploads/
+
+# Базы данных и логи
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Резервные копии данных перед правками
+_backup/
+*.bak
+*.backup
+*~
+
+# Тяжёлое и временное — восстанавливается само (npm install, npm run build)
+node_modules/
+dist/
+.cache/
+.vite/
+coverage/
+playwright-report/
+test-results/
+
+# Служебное
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
