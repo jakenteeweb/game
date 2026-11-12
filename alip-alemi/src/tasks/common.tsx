@@ -7,6 +7,7 @@ import type { TaskSpec } from '../engine/session';
 import { useSpeaking } from '../ui/Mascot';
 import { PICTURE_BY_ID, type Picture } from '../content/pictures';
 import { Pic } from './objects';
+import { Icon } from '../ui/Icon';
 
 export interface TaskProps {
   spec: TaskSpec;
@@ -72,7 +73,7 @@ export function SpeakerButton({ steps, big }: { steps: Step[]; big?: boolean }) 
   const speaking = useSpeaking();
   return (
     <button className={`icon-btn speaker ${speaking ? 'pulse' : ''} ${big ? '' : 'small'}`} aria-label="Тыңдау" onClick={() => void audio.play(steps)}>
-      🔊
+      <Icon name="sound" />
     </button>
   );
 }
@@ -131,7 +132,8 @@ export function useChoice(spec: TaskSpec, correct: (opt: string) => boolean, onD
       hint && correct(opt) && rightIdx === null ? 'hint' : '',
     ].join(' ');
 
-  return { tap, classFor };
+  const feedback = rightIdx !== null ? 'Жарайсың! Дұрыс таптың!' : hint ? 'Жарқыраған жауапты таңдап көр.' : errors.current > 0 ? 'Тағы бір рет көр. Сенің қолыңнан келеді!' : '';
+  return { tap, classFor, feedback, correct: rightIdx !== null };
 }
 
 export function clipExists(id: string | undefined): id is string {

@@ -42,7 +42,7 @@ export function LetterIntro({ spec, onDone, setReplay }: TaskProps) {
       )}
       {ready && (
         <button className="next-btn appear" aria-label="Әрі қарай" onClick={() => { audio.stop(); onDone({ completed: true, errors: 0, hinted: false }); }}>
-          ➜
+          <span className="next-label">Әрі қарай</span> ➜
         </button>
       )}
     </div>

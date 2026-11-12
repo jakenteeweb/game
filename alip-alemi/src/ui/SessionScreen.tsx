@@ -12,6 +12,7 @@ import { WriteTask } from '../tasks/WriteTask';
 import { BalloonsTask } from '../tasks/BalloonsTask';
 import { BasketTask, ChooseGroupTask, CountTask } from '../tasks/NumberTasks';
 import { Mascot } from './Mascot';
+import { Icon } from './Icon';
 import { nextRewards } from './garden';
 import { giveStars, levelUpSteps } from './LevelToast';
 
@@ -147,13 +148,24 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
 
   if (phase === 'end') {
     return (
-      <div className="screen">
+      <div className={`screen ${track === 'letters' ? 'lesson-screen lesson-end' : ''}`}>
         <div className="center">
+          {track === 'letters' && <span className="lesson-badge">Сабақ аяқталды</span>}
           <Mascot size="big" mood="cheer" />
+          {track === 'letters' && (
+            <>
+              <h1>Жарайсың, {app.profile?.nickname}!</h1>
+              <p className="end-message">Бүгін тағы бір қадам алға бастың.</p>
+            </>
+          )}
           <div className="reward">{rewards.join(' ') || '🌱'}</div>
           <div className="row-wrap" style={{ gap: 18 }}>
-            <button className="big-btn" style={{ width: 120, height: 110, fontSize: 48 }} aria-label="Үйге" onClick={() => app.go({ name: 'home' })}>🏡</button>
-            <button className="big-btn" style={{ width: 120, height: 110, fontSize: 48 }} aria-label="Бақ" onClick={() => app.go({ name: 'garden' })}>🌳</button>
+            <button className="big-btn" style={{ width: 120, height: 110, fontSize: 48 }} aria-label="Үйге" onClick={() => app.go({ name: 'home' })}>
+              {track === 'letters' ? <><Icon name="home" /><span>Үйге</span></> : '🏡'}
+            </button>
+            <button className="big-btn" style={{ width: 120, height: 110, fontSize: 48 }} aria-label="Бақ" onClick={() => app.go({ name: 'garden' })}>
+              {track === 'letters' ? <><Icon name="garden" /><span>Баққа бару</span></> : '🌳'}
+            </button>
           </div>
         </div>
       </div>
@@ -162,16 +174,30 @@ export function SessionScreen({ track }: { track: 'letters' | 'numbers' }) {
 
   const setReplay = (s: Step[]) => (replay.current = s);
   const total = plan?.tasks.length ?? 0;
+  const lessonLabels: Record<string, [string, string]> = {
+    intro: ['Жаңа әріппен танысайық', 'Әріп пен суретті басып, тыңдап көр.'],
+    recognize: ['Әріпті тап', 'Ханшайымды тыңда да, дұрыс әріпті таңда.'],
+    listen: ['Тыңда да, таңда', 'Дыбысты тыңдап, оның әрпін тап.'],
+    wordMatch: ['Суретті тап', 'Осы әріптен басталатын сөзді таңда.'],
+    trace: ['Әріпті бірге жазайық', 'Жұлдызшадан бастап, сызық бойымен жүргіз.'],
+    write: ['Енді өзің жазып көр', 'Әріпті саусағыңмен жаз. Дайын болғанда ✓ бас.'],
+    balloons: ['Әріпті шарлардан тап', 'Тыңда да, керек әрпі бар шарларды жар.'],
+  };
+  const label = lessonLabels[task?.showAs ?? ''] ?? ['Бірге үйренейік', 'Ханшайымды тыңда.'];
   return (
-    <div className="screen">
+    <div className={`screen ${track === 'letters' ? 'lesson-screen' : ''}`}>
       <div className="session-top">
         <button className="icon-btn small" aria-label="Шығу" onClick={() => void finish()}>✕</button>
-        <div className="dots" aria-hidden="true">
-          {[...Array(total)].map((_, i) => <span key={i} className={`dot ${i < index ? 'done' : i === index ? 'now' : ''}`} />)}
+        <div className="lesson-progress">
+          {track === 'letters' && <div className="lesson-progress-label"><span>Әріптер</span><span>{Math.min(index + 1, total)} / {total}</span></div>}
+          <div className="dots" role="progressbar" aria-label="Сабақ барысы" aria-valuemin={0} aria-valuemax={total || 1} aria-valuenow={index}>
+            {[...Array(total)].map((_, i) => <span key={i} className={`dot ${i < index ? 'done' : i === index ? 'now' : ''}`} />)}
+          </div>
         </div>
         <Mascot size="small" bounceKey={praise || undefined} />
-        <button className="icon-btn small" aria-label="Қайта тыңдау" onClick={() => void audio.play(replay.current)}>🔁</button>
+        <button className="icon-btn small" aria-label="Қайта тыңдау" onClick={() => void audio.play(replay.current)}><Icon name="sound" /></button>
       </div>
+      {track === 'letters' && <div className="lesson-heading"><span className="eyebrow">{task?.reason === 'return' || task?.reason === 'review' ? 'ҚАЙТАЛАП КӨРЕЙІК' : 'ҚАДАМ САЙЫН ҮЙРЕНЕМІЗ'}</span><h1>{phase === 'greet' || !showTask ? 'Дайынсың ба?' : label[0]}</h1><p>{phase === 'greet' || !showTask ? 'Ханшайым сенімен бірге!' : label[1]}</p></div>}
       {phase === 'greet' || !showTask ? (
         <div className="center">
           <Mascot size="big" />

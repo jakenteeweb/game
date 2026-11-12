@@ -33,7 +33,7 @@ export function ChoiceTask({ spec, onDone, setReplay }: TaskProps) {
   const answer = mode === 'wordMatch'
     ? spec.options.find((o) => PICTURE_BY_ID[o.slice(4)]?.word === (item as LetterItem).words[0]?.word) ?? ''
     : spec.itemId;
-  const { tap, classFor } = useChoice(spec, (o) => o === answer, onDone, () => void audio.play(steps));
+  const { tap, classFor, feedback, correct } = useChoice(spec, (o) => o === answer, onDone, () => void audio.play(steps));
 
   // Если инструкцию нельзя озвучить, для чисел показываем количество — иначе задание не понять без чтения.
   const showGroup = mode === 'matchDigit' || (mode === 'findDigit' && !audio.canPlay(steps[0] as string));
@@ -59,6 +59,7 @@ export function ChoiceTask({ spec, onDone, setReplay }: TaskProps) {
           <GroupPicture count={(item as NumberItem).value} obj={spec.object} seed={spec.seed} base={44} />
         </div>
       )}
+      {item.track === 'letters' && <div className={`exercise-feedback ${correct ? 'success' : ''}`} role="status" aria-live="polite">{feedback || 'Тыңда. Ойлан. Таңда.'}</div>}
       <div className={`choices n${n}`} data-answer={answer}>
         {spec.options.map((opt, i) => (
           <button key={i} data-opt={opt} className={`${classFor(opt, i)} ${opt.startsWith('pic:') ? 'pic' : ''}`} onClick={() => tap(opt, i)} aria-label={optionLabel(opt).text}>

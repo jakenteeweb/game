@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { initUpdates } from './updates';
 import './styles.css';
+import './learning.css';
 
 /** Вместо белого экрана при сбое — понятное сообщение и кнопка перезагрузки. */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {

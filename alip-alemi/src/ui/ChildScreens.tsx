@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { audio, music } from '../audio/audio';
 import { useApp } from '../state';
 import { Mascot } from './Mascot';
+import { Icon } from './Icon';
 import { gardenSpot } from './garden';
 import { levelOf, levelProgress } from '../engine/stars';
 
@@ -150,40 +151,30 @@ export function Home() {
   };
   const start = (track: 'letters' | 'numbers') => app.go({ name: 'session', track, id: Date.now() });
   return (
-    <div className="screen">
-      <div className="topbar">
-        <button className="icon-btn" aria-label={profile.nickname} onClick={() => app.go({ name: 'pick' })}>
-          <span className="avatar">{profile.avatar}</span>
-        </button>
-        <StarsPill stars={profile.stars ?? 0} />
-        <span className="spacer" />
-        <button className={`icon-btn small ${musicOn ? '' : 'off'}`} aria-label="Әуен" onClick={toggleMusic}>{musicOn ? '🎵' : '🔇'}</button>
-        <ParentEntry />
-      </div>
-      <div className="home-hero">
-        <Mascot size="big" />
-        <span className="bubble">Сәлем, {profile.nickname}!</span>
-      </div>
-      <div className="home-tracks">
-        <button className="big-btn track-card letters" onClick={() => start('letters')} aria-label="Әріптер">
-          <span className="tag">Сабақ</span>
-          <span className="sym">Аа</span>
-          <span className="label">Әріптер</span>
-        </button>
-        <button className="big-btn track-card numbers" onClick={() => start('numbers')} aria-label="Сандар">
-          <span className="tag">Сабақ</span>
-          <span className="sym">123</span>
-          <span className="label">Сандар</span>
-        </button>
-      </div>
-      <button className="big-btn play-btn" onClick={() => app.go({ name: 'games' })} aria-label="Ойындар">
-        <span className="preview">🎮</span>
-        <span>Ойындар</span>
-      </button>
-      <button className="big-btn garden-btn" onClick={() => app.go({ name: 'garden' })} aria-label="Менің бағым">
-        <span className="preview">{profile.garden.slice(-5).join('') || '🌱'}</span>
-        <span>Менің бағым</span>
-      </button>
+    <div className="screen home-screen">
+      <header className="home-header">
+        <div className="brand"><span className="brand-mark">Ә</span><span>Әріп әлемі<small>Ханшайыммен бірге үйрен</small></span></div>
+        <div className="home-tools">
+          <button className="icon-btn small" aria-label={profile.nickname} onClick={() => app.go({ name: 'pick' })}><span className="profile-initial">{profile.nickname.slice(0, 1)}</span></button>
+          <button className={`icon-btn small ${musicOn ? '' : 'off'}`} aria-label="Әуен" aria-pressed={musicOn} onClick={toggleMusic}>♪</button>
+          <ParentEntry />
+        </div>
+      </header>
+      <main className="home-content">
+        <div className="home-greeting"><div><p className="eyebrow">БҮГІНГІ КІШКЕНТАЙ ЖЕҢІСІҢ</p><h1>Сәлем, {profile.nickname}!</h1></div><StarsPill stars={profile.stars ?? 0} /></div>
+        <section className="learning-hero" aria-label="Ханшайыммен үйрен">
+          <div className="hero-copy"><span className="lesson-badge"><span />{profile.sessionCount > 0 ? 'Жарайсың! Жалғастырайық' : 'Бірге бастайық'}</span><h2>Әріптен<br />үлкен әлемге!</h2><p>Тыңда, таңда, жаз.<br />Мен саған көмектесемін!</p><button className="continue-btn" onClick={() => start('letters')} aria-label="Оқуды жалғастыру">{profile.sessionCount > 0 ? 'Оқуды жалғастыру' : 'Оқуды бастау'}<Icon name="arrow" /></button></div>
+          <div className="hero-art"><span className="floating-letter letter-a" aria-hidden="true">А</span><span className="floating-letter letter-ae" aria-hidden="true">Ә</span><span className="floating-letter letter-b" aria-hidden="true">Б</span><Mascot size="big" /><span className="mascot-caption">Сенің досың — Ханшайым</span></div>
+        </section>
+        <div className="section-heading"><h2>Бүгін не үйренеміз?</h2><span>Өзің таңда</span></div>
+        <nav className="learning-grid" aria-label="Оқу бөлімдері">
+          <button className="learning-card letter-link" onClick={() => start('letters')} aria-label="Әріптер"><span className="section-symbol">Әә</span><span className="card-copy"><strong>Әріптер</strong><small>Тыңдаймыз, оқимыз, жазамыз</small></span><Icon name="arrow" /></button>
+          <button className="learning-card number-link" onClick={() => start('numbers')} aria-label="Сандар"><span className="section-symbol">123</span><span className="card-copy"><strong>Сандар</strong><small>Санаймыз, салыстырамыз</small></span><Icon name="arrow" /></button>
+          <button className="learning-card games-link" onClick={() => app.go({ name: 'games' })} aria-label="Ойындар"><span className="section-symbol"><Icon name="game" /></span><span className="card-copy"><strong>Ойындар</strong><small>Ойнап үйренейік!</small></span><Icon name="arrow" /></button>
+          <button className="learning-card garden-link" onClick={() => app.go({ name: 'garden' })} aria-label="Менің бағым"><span className="section-symbol"><Icon name="garden" /></span><span className="card-copy"><strong>Менің бағым</strong><small>{profile.garden.length ? `${profile.garden.length} сыйлық жинадың` : 'Әр сабақ — жаңа сыйлық'}</small></span><Icon name="arrow" /></button>
+        </nav>
+        <footer className="home-footer"><Icon name="garden" />Кішкентай қадамдар. Үлкен жетістіктер.</footer>
+      </main>
     </div>
   );
 }
@@ -218,7 +209,7 @@ export function Garden() {
 export function StarsPill({ stars }: { stars: number }) {
   return (
     <span className="stars-pill" aria-label={`${stars} жұлдыз`}>
-      ⭐ {stars}
+      <Icon name="star" /> {stars}
       <span className="bar"><i style={{ width: `${Math.round(levelProgress(stars) * 100)}%` }} /></span>
       <span className="lvl">{levelOf(stars)}-деңгей</span>
     </span>
